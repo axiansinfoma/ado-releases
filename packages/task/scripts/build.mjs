@@ -27,5 +27,6 @@ await build({
   legalComments: 'none',
 });
 copyFileSync('task.json', `${out}/task.json`);
+copyFileSync('icon.png', `${out}/icon.png`); // shown in the task assistant and task list
 writeFileSync(`${out}/package.json`, '{ "type": "commonjs" }\n');
 console.log(`built ${out}`);

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Releases: a rocket taking off (matches the hub's Rocket navigation icon). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2E8FE0"/>
+      <stop offset="1" stop-color="#0A4F9E"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD54A"/>
+      <stop offset="1" stop-color="#FF8A3D"/>
+    </linearGradient>
+    <mask id="window" maskUnits="userSpaceOnUse" x="-40" y="-40" width="208" height="208">
+      <rect x="-40" y="-40" width="208" height="208" fill="#fff"/>
+      <circle cx="64" cy="54" r="8" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+  <!-- stars -->
+  <circle cx="104" cy="22" r="3" fill="#fff" opacity=".8"/>
+  <circle cx="98" cy="96" r="2.5" fill="#fff" opacity=".6"/>
+  <path fill="#FFD54A" d="M30 18 Q32 27 41 29 Q32 31 30 40 Q28 31 19 29 Q28 27 30 18 Z"/>
+  <g transform="rotate(45 64 64)">
+    <!-- flame -->
+    <path fill="url(#flame)" d="M55 92 Q57 106 64 116 Q71 106 73 92 Z"/>
+    <!-- fins -->
+    <path fill="#fff" d="M49 66 Q38 74 36 92 L50 86 Z"/>
+    <path fill="#fff" d="M79 66 Q90 74 92 92 L78 86 Z"/>
+    <!-- body with window -->
+    <path mask="url(#window)" fill="#fff"
+      d="M64 16 C76 26 81 42 81 58 V84 Q81 90 75 90 H53 Q47 90 47 84 V58 C47 42 52 26 64 16 Z"/>
+  </g>
+</svg>
