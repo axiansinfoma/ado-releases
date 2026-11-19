@@ -68,7 +68,7 @@ export async function run(env: NodeJS.ProcessEnv = process.env): Promise<void> {
   const wikiProject = input('wikiProject', env) ?? project;
   const store = new WikiStore(client, {
     project: wikiProject,
-    repository: input('wiki', env) ?? `${wikiProject}.wiki`,
+    repository: input('wiki', env), // default: the project wiki, found by name or as the hidden *.wiki repository
     branch: input('wikiBranch', env),
     root: input('root', env),
   });

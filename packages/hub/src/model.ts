@@ -73,11 +73,14 @@ export function isValidPrefix(prefix: string): boolean {
 export function describeError(e: unknown): string {
   if (e instanceof AdoError) {
     if (e.status === 401 || e.status === 203) return `Not signed in or the token expired (${e.status}). Reload the page.`;
-    if (e.status === 403 || /TF401027|TF401019|permission/i.test(e.body)) {
-      return `Permission denied: ${e.message}. Publishing needs "Contribute" on the wiki repository, and "Create tag" on this repository for new tags.`;
-    }
     if (e.status === 404 && /wiki/i.test(e.message)) {
-      return `Wiki repository not found: ${e.message}. Check the wiki in the settings.`;
+      return `Wiki repository not found or not accessible: ${e.message}. Check the wiki in the settings.`;
+    }
+    if (e.status === 409 && /wiki/i.test(e.message)) {
+      return `${e.message.replace(/: set the wiki repository$/, '')}: choose one in the settings.`;
+    }
+    if (e.status === 403 || /TF401027|permission/i.test(e.body)) {
+      return `Permission denied: ${e.message}. Publishing needs "Contribute" on the wiki repository, and "Create tag" on this repository for new tags.`;
     }
     return e.message;
   }

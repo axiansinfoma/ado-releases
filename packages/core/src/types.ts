@@ -34,8 +34,12 @@ export interface ReleaseRecord {
 export interface WikiLocation {
   /** Project that holds the wiki. */
   project: string;
-  /** Wiki repository name or id, e.g. "MyProject.wiki". */
-  repository: string;
+  /**
+   * Wiki repository name or id, e.g. "MyProject.wiki". When omitted, the project wiki is found:
+   * "<project>.wiki", or the project's only hidden "*.wiki" repository (after a project rename the
+   * wiki repository keeps its old name).
+   */
+  repository?: string;
   /** Wiki name used in web URLs. Defaults to the repository name. */
   wikiName?: string;
   /** Branch, e.g. "wikiMaster". Resolved from the repository default branch when omitted. */

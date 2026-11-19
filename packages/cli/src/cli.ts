@@ -113,7 +113,7 @@ async function main(): Promise<void> {
   const wikiProject = values['wiki-project'] ?? project;
   const store = new WikiStore(client, {
     project: wikiProject,
-    repository: values.wiki ?? `${wikiProject}.wiki`,
+    repository: values.wiki, // default: the project wiki, found by name or as the hidden *.wiki repository
     branch: values['wiki-branch'],
     root: values.root,
   });

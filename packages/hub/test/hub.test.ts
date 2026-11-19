@@ -89,16 +89,24 @@ describe('model', () => {
   it('explains permission and auth errors', () => {
     expect(describeError(new AdoError('POST pushes failed: 403', 403, ''))).toMatch(/Permission denied.*Contribute/);
     expect(describeError(new AdoError('x', 401, ''))).toMatch(/token expired/);
+    // the screenshot case: wiki repository named after the old project name -> not found, not "permission denied"
+    const tf401019 = 'TF401019: The Git repository with name or identifier Proj.wiki does not exist or you do not have permissions';
+    expect(describeError(new AdoError('GET .../git/repositories/Proj.wiki failed: 404 ' + tf401019, 404, tf401019))).toMatch(
+      /^Wiki repository not found or not accessible.*settings/,
+    );
+    expect(describeError(new AdoError('several wiki repositories in Proj (A.wiki, B.wiki): set the wiki repository', 409, ''))).toBe(
+      'several wiki repositories in Proj (A.wiki, B.wiki): choose one in the settings.',
+    );
     expect(describeError(new Error('plain'))).toBe('plain');
   });
 });
 
 describe('settings', () => {
   it('defaults to the project wiki and the Releases root', () => {
-    expect(resolveWikiLocation('Proj', {})).toEqual({ project: 'Proj', repository: 'Proj.wiki', branch: undefined, root: 'Releases' });
+    expect(resolveWikiLocation('Proj', {})).toEqual({ project: 'Proj', repository: undefined, branch: undefined, root: 'Releases' });
     expect(resolveWikiLocation('Proj', { wikiProject: 'Docs', root: ' Rel ' })).toEqual({
       project: 'Docs',
-      repository: 'Docs.wiki',
+      repository: undefined, // found in Docs at runtime
       branch: undefined,
       root: 'Rel',
     });

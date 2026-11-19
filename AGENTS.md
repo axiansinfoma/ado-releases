@@ -38,6 +38,7 @@ In memory-limited dev containers, wrap these in `memguard --` where available.
 - **Commit range semantics.** In `GET commits`, `itemVersion` is the *old* version and `compareVersion` the *new* one. Swapping them returns 0 commits.
 - **Commit → PR lookup.** Query both `lastMergeCommit` (squash/rebase merges, where the commit is the PR's merge commit) and `commit` (commit contained in the PR) in one `pullrequestquery` call.
 - **Housekeeping commits.** Commits without a PR whose subject contains `[skip ci]` / `***NO_CI***` are left out of the notes.
+- **Project wiki discovery.** Without a configured wiki repository, `AdoClient.findProjectWikiRepository` tries `<project>.wiki`, then the project's only hidden `*.wiki` repository (`includeHidden=true`); a renamed project keeps its old wiki repository name. TF401019 means "does not exist or no permission", so report 404s as "not found or not accessible", not as permission errors.
 - **Wiki file names.** Page files use the wiki encoding (`wikiname.ts`). Data files under `/.releases/` use plain names, because consumers build URLs to them. Every derived file can be rebuilt from `index.json` (and from the metadata comment on each release page).
 - **Push changeType.** It must be `add` for new files and `edit` for existing ones; the store lists existing files on every attempt.
 - **Tests.** They run against `packages/core/test/fake-ado.ts`, an in-memory fake of the endpoints. Extend it when the client uses a new endpoint, and probe the real API first, read-only.

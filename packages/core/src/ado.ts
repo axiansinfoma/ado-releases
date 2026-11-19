@@ -130,6 +130,41 @@ export class AdoClient {
     return this.json<GitRepository>('GET', this.url(project, `git/repositories/${encodeURIComponent(repository)}`));
   }
 
+  /** Repositories of a project; with includeHidden also the hidden project wiki repository. */
+  async listRepositories(project: string, includeHidden = false): Promise<GitRepository[]> {
+    const data = await this.json<{ value: GitRepository[] }>(
+      'GET',
+      this.url(project, 'git/repositories', { includeHidden: includeHidden ? 'true' : undefined }),
+    );
+    return data.value;
+  }
+
+  /**
+   * The project wiki's repository: "<project>.wiki" if it exists, otherwise the project's only hidden
+   * "*.wiki" repository (a renamed project keeps its wiki repository name). Throws when there is none
+   * or more than one candidate.
+   */
+  async findProjectWikiRepository(project: string): Promise<GitRepository> {
+    try {
+      return await this.getRepository(project, `${project}.wiki`);
+    } catch (e) {
+      if (!(e instanceof AdoError) || e.status !== 404) throw e;
+    }
+    const visible = new Set((await this.listRepositories(project)).map((r) => r.id));
+    const candidates = (await this.listRepositories(project, true)).filter(
+      (r) => !visible.has(r.id) && r.name.toLowerCase().endsWith('.wiki'),
+    );
+    if (candidates.length === 1) return candidates[0]!;
+    if (!candidates.length) {
+      throw new AdoError(`no project wiki found in ${project}: create the project wiki or set the wiki repository`, 404, '');
+    }
+    throw new AdoError(
+      `several wiki repositories in ${project} (${candidates.map((r) => r.name).join(', ')}): set the wiki repository`,
+      409,
+      '',
+    );
+  }
+
   /** Tags whose name starts with `prefix` (without refs/tags/), with the commit they point to. */
   async listTags(project: string, repositoryId: string, prefix = ''): Promise<GitTag[]> {
     const out: GitTag[] = [];

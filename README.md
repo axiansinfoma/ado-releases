@@ -35,7 +35,7 @@ The extension adds **Repos › Releases** next to Tags. For the selected Git rep
   2. **Generate release notes** from the PRs since the previous tag. The previous tag is detected automatically and can be overridden. For a new tag, the next version is proposed from the PR titles: `feat` → minor, `fix` → patch, `!` → major.
   3. Edit the notes with a Markdown preview, mark the release as a pre-release if needed, and publish.
 - **A release page** (`?view=release&package=…&version=…`), which you can link to directly. It has **Edit** (title, notes, pre-release) and **Delete**. Delete removes the release from the wiki; the git tag stays.
-- **Settings** per project: wiki project, wiki repository, branch and root page. They default to `<project>.wiki`, its default branch and `Releases`.
+- **Settings** per project: wiki project, wiki repository, branch and root page. They default to the project wiki, its default branch and `Releases`. The project wiki is `<project>.wiki`, or, after a project rename (the wiki repository keeps its old name), the project's only hidden `*.wiki` repository.
 
 The page acts as the signed-in user. Publishing needs **Contribute** on the wiki repository, and **Create tag** on the repository when the page creates a new tag.
 
@@ -50,7 +50,7 @@ Add it after the step that creates the tag:
     pathFilter: /src/tools/acme      # monorepos: only changes of this package
     # previousTag:                   # default: detected
     # ifExists: skip                 # skip | fail | replace (default skip, safe for re-runs)
-    # wiki: MyProject.wiki           # default: <project>.wiki
+    # wiki: MyProject.wiki           # default: the project wiki (found automatically)
     # dryRun: true                   # plan only, no tag, no push
 ```
 

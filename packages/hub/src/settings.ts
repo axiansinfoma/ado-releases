@@ -5,7 +5,7 @@ import type { IExtensionDataManager } from './sdk.js';
 export interface WikiSettings {
   /** Project of the wiki; default: the current project. */
   wikiProject?: string;
-  /** Wiki repository; default: "<wiki project>.wiki" (the project wiki). */
+  /** Wiki repository; default: the project wiki ("<wiki project>.wiki", or its hidden *.wiki repository after a rename). */
   wiki?: string;
   /** Wiki branch; default: the wiki repository's default branch. */
   branch?: string;
@@ -22,7 +22,7 @@ export function resolveWikiLocation(projectName: string, settings: WikiSettings)
   const project = settings.wikiProject?.trim() || projectName;
   return {
     project,
-    repository: settings.wiki?.trim() || `${project}.wiki`,
+    repository: settings.wiki?.trim() || undefined,
     branch: settings.branch?.trim() || undefined,
     root: settings.root?.trim() || 'Releases',
   };
