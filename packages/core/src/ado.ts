@@ -264,6 +264,11 @@ export class AdoClient {
     return out;
   }
 
+  /** Annotated tag object by its object ID (the tag ref's objectId, not the commit). */
+  async getAnnotatedTag(project: string, repositoryId: string, objectId: string): Promise<{ taggedBy?: { date?: string } }> {
+    return this.json('GET', this.url(project, `git/repositories/${repositoryId}/annotatedtags/${objectId}`));
+  }
+
   async getCommit(project: string, repositoryId: string, commitId: string): Promise<GitCommitRef & { committer?: { date?: string } }> {
     return this.json('GET', this.url(project, `git/repositories/${repositoryId}/commits/${commitId}`));
   }

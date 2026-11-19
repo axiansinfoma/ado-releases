@@ -1,4 +1,4 @@
-import { compareUrl, tagUrl, type GitRepository, type ReleaseRecord } from '@ado-releases/core';
+import { compareUrl, releaseDate, tagUrl, type GitRepository, type ReleaseRecord } from '@ado-releases/core';
 import { renderMarkdown } from '../markdown.js';
 
 export interface ReleaseCardProps {
@@ -18,8 +18,8 @@ export function ReleaseCard({ record, repo, isLatest, wikiUrl, showPackage, onOp
   return (
     <article className="release">
       <aside className="release-meta">
-        <div className="release-date" title={record.publishedAt}>
-          {record.publishedAt.slice(0, 10)}
+        <div className="release-date" title={`released ${releaseDate(record)}, published ${record.publishedAt}`}>
+          {releaseDate(record).slice(0, 10)}
         </div>
         {record.publishedBy && <div className="muted">{record.publishedBy}</div>}
         <a className="tag-link" href={tagUrl(repo, record.tag)} target="_top">

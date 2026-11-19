@@ -1,4 +1,4 @@
-import type { ReleaseRecord } from '@ado-releases/core';
+import { releaseDate, type ReleaseRecord } from '@ado-releases/core';
 import { useEffect, useState } from 'react';
 import { withStore, type Env } from '../env.js';
 import { describeError } from '../model.js';
@@ -53,7 +53,7 @@ export function EditRelease({ env, pkg, version }: { env: Env; pkg: string; vers
       ) : (
         <div className="form">
           <div className="muted">
-            Tag {record.tag} · published {record.publishedAt.slice(0, 10)}
+            Tag {record.tag} · released {releaseDate(record).slice(0, 10)} · published {record.publishedAt.slice(0, 10)}
           </div>
           <label>
             Title

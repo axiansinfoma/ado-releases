@@ -129,7 +129,7 @@ node packages/cli/dist/cli.js notes --org https://dev.azure.com/myorg --project 
 node packages/cli/dist/cli.js publish --org https://dev.azure.com/myorg --project MyProject \
   --repository MyRepo --tag tools/acme/v1.2.3 --path /src/tools/acme --dry-run --out ./out
 
-# publish releases for all existing tags of a package, oldest first, dated by the tagged commit
+# publish releases for all existing tags of a package, oldest first, each dated by its tag
 node packages/cli/dist/cli.js backfill --org https://dev.azure.com/myorg --project MyProject \
   --repository MyRepo --prefix tools/acme --path /src/tools/acme
 ```
@@ -150,6 +150,7 @@ source repository                project wiki repository (e.g. MyProject.wiki)
 
 - **Packages.** A tag `<prefix>/v<semver>` belongs to the package `<prefix>`. A plain `v<semver>` tag belongs to a package named after the repository.
 - **Previous tag.** By default, the previous tag is the highest tag of the same package below the new version. For a stable version, pre-release tags are skipped, so the notes of `1.2.0` cover everything since `1.1.0`.
+- **Release date.** A release is dated by its tag: the tagger date of an annotated tag, the commit date of a lightweight tag, or the publish time for a tag created with the release. Renovate gets this date as `releaseTimestamp`, so publishing an old tag later doesn't make it look new.
 - **Atomic writes.** Each publish is one commit to the wiki repository, made through the Git Pushes API. If the branch moved in the meantime, it retries.
 - **Rebuildable data.** Each release page carries its record as hidden metadata, and all derived files can be rebuilt from `index.json`. Files under `/.releases/` don't appear in the wiki tree and use plain names, so other tools can build their URLs.
 

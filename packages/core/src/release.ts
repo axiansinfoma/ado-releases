@@ -1,4 +1,4 @@
-import type { AdoClient, GitRepository, VersionRef } from './ado.js';
+import type { AdoClient, GitRepository, GitTag, VersionRef } from './ado.js';
 import { generateNotes, type GeneratedNotes } from './notes.js';
 import type { WikiStore } from './store.js';
 import type { FileChange, ReleaseRecord } from './types.js';
@@ -109,6 +109,8 @@ export interface PublishReleaseOptions {
   publishedBy?: string;
   /** Publication timestamp (ISO). Default: now. Backfills pass the tagged commit's date. */
   publishedAt?: string;
+  /** Release timestamp (ISO). Default: the tag's date, or the publish time for a tag created now. */
+  releasedAt?: string;
   dryRun?: boolean;
   allowReplace?: boolean;
   /** Clock for tests. */
@@ -158,6 +160,7 @@ export async function publishRelease(
         pathFilter: opts.pathFilter,
       });
 
+  const publishedAt = opts.publishedAt ?? (opts.now?.() ?? new Date()).toISOString();
   const record: ReleaseRecord = {
     schema: 1,
     repository: repo.name,
@@ -169,7 +172,8 @@ export async function publishRelease(
     title: opts.title ?? releaseTitle(parsed.prefix, parsed.version),
     notes: opts.notes ?? generated!.markdown,
     prerelease: opts.prerelease ?? isPrerelease(parsed.version),
-    publishedAt: opts.publishedAt ?? (opts.now?.() ?? new Date()).toISOString(),
+    publishedAt,
+    releasedAt: opts.releasedAt ?? (existingTag ? await tagDate(client, opts.project, repo.id, existingTag) : publishedAt),
     publishedBy: opts.publishedBy,
   };
 
@@ -183,4 +187,23 @@ export async function publishRelease(
     allowReplace: opts.allowReplace,
   });
   return { record, generated, files, wikiCommitId: commitId, tagCreated };
+}
+
+/**
+ * Date of an existing tag: the tagger date of an annotated tag, else (lightweight tag, or the tag
+ * object can't be read) the committer date of the tagged commit. Undefined if neither is available.
+ */
+export async function tagDate(client: AdoClient, project: string, repositoryId: string, tag: GitTag): Promise<string | undefined> {
+  if (tag.objectId !== tag.commitId) {
+    const annotated = await client.getAnnotatedTag(project, repositoryId, tag.objectId).catch(() => undefined);
+    if (annotated?.taggedBy?.date) return utc(annotated.taggedBy.date);
+  }
+  const commit = await client.getCommit(project, repositoryId, tag.commitId).catch(() => undefined);
+  const d = commit?.committer?.date ?? commit?.author?.date;
+  return d && utc(d);
+}
+
+/** Azure DevOps returns some dates without a zone (e.g. taggedBy.date "2026-11-12T09:17:36"); they are UTC. */
+function utc(iso: string): string {
+  return /(Z|[+-]\d{2}:?\d{2})$/.test(iso) ? iso : `${iso}Z`;
 }
