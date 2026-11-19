@@ -108,6 +108,34 @@ Renovate's own Azure DevOps token is registered for host type `azure` and is not
 
 See [AGENTS.md](AGENTS.md) for structure, commands and conventions.
 
+## Releasing
+
+1. Set the version and merge it to `main`. The script updates both the extension and the pipeline task, because Azure DevOps agents only download a task again when its version is higher:
+
+   ```sh
+   node scripts/version.mjs set 0.2.0
+   ```
+
+2. Publish a GitHub release with the tag `v0.2.0`. The [Publish](.github/workflows/publish.yml) workflow then:
+   - checks that the tag matches both versions;
+   - tests, builds and packages the extension;
+   - publishes it to the Visual Studio Marketplace;
+   - attaches the `.vsix` to the release.
+
+   For a pre-release, the workflow packages but doesn't publish. Run it manually to package only (`dry_run`, the default) or to publish without a release.
+
+Publishing uses no stored secret. The workflow signs in to Microsoft Entra with GitHub OIDC (a federated credential, nothing expires) and passes the resulting Azure DevOps token to `tfx` where it expects a PAT. One-time setup:
+
+1. Create an app registration in the Microsoft Entra tenant that is connected to your Azure DevOps organization. Add a federated credential:
+   - issuer `https://token.actions.githubusercontent.com`
+   - subject `repo:<owner>/<repo>:environment:marketplace`
+   - audience `api://AzureADTokenExchange`
+2. Create the GitHub environment `marketplace` with the variables `AZURE_CLIENT_ID` and `AZURE_TENANT_ID`. These are not secrets. Optionally limit the environment to tags and reviewers.
+3. Run the Publish workflow manually (`dry_run`). It prints the service principal's Azure DevOps profile ID.
+4. Add that ID as a member of the Marketplace publisher (Manage publisher → Members), with a role that may publish.
+
+While the extension is private (`"public": false` in `vss-extension.json`), share it with organizations once in the Marketplace; updates keep the sharing.
+
 ## License
 
 [MPL-2.0](LICENSE)

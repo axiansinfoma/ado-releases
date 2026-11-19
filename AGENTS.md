@@ -29,7 +29,10 @@ npm test            # vitest; core and task
 npm run build       # core (tsc) before cli, task and hub (esbuild); the order comes from the workspaces list
 (cd packages/hub && node scripts/build.mjs --dev)   # unminified hub with inline source maps
 npx tfx-cli@0.24.2 extension create --manifest-globs vss-extension.json   # needs file(1)
+node scripts/version.mjs set X.Y.Z   # extension + task version together; `check [vX.Y.Z]` in CI/publish
 ```
+
+Releases: publishing a GitHub release `vX.Y.Z` runs `.github/workflows/publish.yml` (Marketplace publish via GitHub OIDC → Entra service principal, environment `marketplace`, no stored secret). Never change only one of the two versions: agents only fetch a task whose version increased.
 
 In memory-limited dev containers, wrap these in `memguard --` where available.
 
