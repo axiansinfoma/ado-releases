@@ -120,7 +120,7 @@ See [AGENTS.md](AGENTS.md) for structure, commands and conventions.
    - checks that the tag matches both versions;
    - tests, builds and packages the extension;
    - publishes it to the Visual Studio Marketplace;
-   - attaches the `.vsix` to the release.
+   - attaches the `.vsix` to the release, also when the Marketplace publish fails or the release is a pre-release.
 
    For a pre-release, the workflow packages but doesn't publish. Run it manually to package only (`dry_run`, the default) or to publish without a release.
 
