@@ -1,4 +1,4 @@
-import type { ReleaseRecord } from './types.js';
+import { releaseDate, type ReleaseRecord } from './types.js';
 import { compareVersions } from './version.js';
 
 /** Links the renderers need. */
@@ -38,7 +38,10 @@ export function renderReleasePage(record: ReleaseRecord, ctx: RenderContext, isL
   const badges = [record.prerelease ? '`Pre-release`' : '', isLatest ? '`Latest`' : ''].filter(Boolean).join(' ');
   const header = [
     `**Tag:** ${tagLink(ctx, record.tag)}`,
-    `**Published:** ${date(record.publishedAt)}${record.publishedBy ? ` by ${record.publishedBy}` : ''}`,
+    `**Released:** ${date(releaseDate(record))}`,
+    date(record.publishedAt) !== date(releaseDate(record)) || record.publishedBy
+      ? `**Published:** ${date(record.publishedAt)}${record.publishedBy ? ` by ${record.publishedBy}` : ''}`
+      : '',
     record.previousTag ? `**Previous:** ${tagLink(ctx, record.previousTag)}` : '',
     `**Package:** [${record.package}](${ctx.packagePageUrl(record.repository, record.package)})`,
   ].filter(Boolean);
@@ -82,7 +85,7 @@ export function renderPackagePage(repository: string, pkg: string, records: Rele
   }
   const rows = sorted.map(
     (r) =>
-      `| [${r.version}](${ctx.releasePageUrl(r)}) | ${date(r.publishedAt)} | ${r.prerelease ? 'Pre-release' : 'Release'} | ${escapeCell(r.title)} |`,
+      `| [${r.version}](${ctx.releasePageUrl(r)}) | ${date(releaseDate(r))} | ${r.prerelease ? 'Pre-release' : 'Release'} | ${escapeCell(r.title)} |`,
   );
   parts.push(`## All releases\n\n| Version | Date | Type | Title |\n|---|---|---|---|\n${rows.join('\n')}`);
   return parts.join('\n\n') + '\n';
@@ -93,6 +96,8 @@ export interface PackageSummary {
   package: string;
   latestVersion: string;
   publishedAt: string;
+  /** Release date of the latest version; missing in summaries written before 0.2.5. */
+  releasedAt?: string;
   prerelease: boolean;
 }
 
@@ -102,7 +107,7 @@ export function renderRepositoryPage(repository: string, packages: PackageSummar
     .sort((a, b) => a.package.localeCompare(b.package))
     .map(
       (p) =>
-        `| [${p.package}](${ctx.packagePageUrl(repository, p.package)}) | ${p.latestVersion}${p.prerelease ? ' (pre-release)' : ''} | ${date(p.publishedAt)} |`,
+        `| [${p.package}](${ctx.packagePageUrl(repository, p.package)}) | ${p.latestVersion}${p.prerelease ? ' (pre-release)' : ''} | ${date(releaseDate(p))} |`,
     );
   return (
     `Releases of [${repository}](${ctx.repositoryWebUrl}).\n\n` +
@@ -137,7 +142,7 @@ export function renderRenovateReleases(repository: string, pkg: string, records:
       .sort((a, b) => compareVersions(a.version, b.version))
       .map((r) => ({
         version: r.version,
-        releaseTimestamp: r.publishedAt,
+        releaseTimestamp: releaseDate(r),
         changelogContent: r.notes.trim(),
         changelogUrl: ctx.releasePageUrl(r),
         isStable: !r.prerelease,

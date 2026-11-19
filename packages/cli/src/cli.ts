@@ -173,11 +173,9 @@ async function main(): Promise<void> {
       .filter((t) => t.parsed && t.parsed.prefix === prefix && !done.has(t.parsed.version))
       .sort((a, b) => compareVersions(a.parsed!.version, b.parsed!.version));
     process.stderr.write(`${tags.length} tags without release\n`);
-    const tagCommits = new Map((await client.listTags(project, repo.id, prefix ? `${prefix}/v` : 'v')).map((t) => [t.name, t.commitId]));
     for (const t of tags) {
-      const commit = await client.getCommit(project, repo.id, tagCommits.get(t.tag)!);
-      const publishedAt = commit.committer?.date ?? commit.author?.date;
-      const res = await publishRelease(client, store, { ...common, tag: t.tag, publishedAt });
+      // the release date comes from the tag (tagger or commit date), see publishRelease
+      const res = await publishRelease(client, store, { ...common, tag: t.tag });
       await report(res.files, values.out && join(values.out, t.parsed!.version), values['dry-run']);
       process.stderr.write(`${values['dry-run'] ? 'planned' : 'published'} ${t.tag}\n`);
     }

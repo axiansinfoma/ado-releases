@@ -24,8 +24,14 @@ export interface ReleaseRecord {
   notes: string;
   /** Pre-release (not stable). */
   prerelease: boolean;
-  /** ISO timestamp of publication. */
+  /** ISO timestamp of publication (when the release record was written). */
   publishedAt: string;
+  /**
+   * ISO timestamp of the release itself: the tag's date (tagger date of an annotated tag, committer
+   * date of the commit for a lightweight tag) or, for a tag created by the publish, its time.
+   * Missing in records written before 0.2.5; use releaseDate(), which falls back to publishedAt.
+   */
+  releasedAt?: string;
   /** Display name of whoever published the release. */
   publishedBy?: string;
 }
@@ -64,4 +70,9 @@ export interface ChangeEntry {
 export interface FileChange {
   path: string;
   content: string;
+}
+
+/** When a release happened: releasedAt, or publishedAt for records without it. */
+export function releaseDate(record: Pick<ReleaseRecord, 'releasedAt' | 'publishedAt'>): string {
+  return record.releasedAt ?? record.publishedAt;
 }

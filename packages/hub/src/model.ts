@@ -1,5 +1,5 @@
 /** UI-independent logic of the hub (routing, grouping, defaults, error texts). */
-import { AdoError, compareVersions, type PackageTag, type ReleaseRecord } from '@ado-releases/core';
+import { AdoError, compareVersions, releaseDate, type PackageTag, type ReleaseRecord } from '@ado-releases/core';
 
 export type Route =
   | { view: 'list'; package?: string }
@@ -40,7 +40,7 @@ export function mergeReleases(byPackage: Record<string, ReleaseRecord[]>, packag
   const all = Object.entries(byPackage)
     .filter(([pkg]) => !packageFilter || pkg === packageFilter)
     .flatMap(([, records]) => records);
-  return all.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || compareVersions(b.version, a.version));
+  return all.sort((a, b) => releaseDate(b).localeCompare(releaseDate(a)) || compareVersions(b.version, a.version));
 }
 
 /** Tags of a package that have no release yet, newest first. */

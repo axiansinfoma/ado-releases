@@ -7,8 +7,10 @@ export interface FakeRepo {
   name: string;
   defaultBranch: string;
   tags: Record<string, string>; // tag -> commit
+  /** Tagger dates of annotated tags; tags without an entry are lightweight. */
+  tagDates?: Record<string, string>;
   /** Commits newest first with the paths they touch. */
-  commits: Array<{ commitId: string; comment: string; paths: string[]; author?: string }>;
+  commits: Array<{ commitId: string; comment: string; paths: string[]; author?: string; date?: string }>;
   prs: Array<{
     pullRequestId: number;
     title: string;
@@ -112,13 +114,27 @@ export class FakeAdo {
       const prefix = filter.replace(/^tags\//, '');
       const value = Object.entries(r.tags)
         .filter(([t]) => t.startsWith(prefix))
-        .map(([t, c]) => ({ name: `refs/tags/${t}`, objectId: `tagobj-${t}`, peeledObjectId: c }));
+        .map(([t, c]) =>
+          r.tagDates?.[t]
+            ? { name: `refs/tags/${t}`, objectId: `tagobj-${t}`, peeledObjectId: c }
+            : { name: `refs/tags/${t}`, objectId: c },
+        );
       return json(200, { value });
     }
     if (sub === 'annotatedtags' && method === 'POST') {
       r.tags[body.name] = body.taggedObject.objectId;
       this.createdTags.push({ name: body.name, commit: body.taggedObject.objectId });
       return json(200, { name: body.name, objectId: 'newtag', taggedObject: { objectId: body.taggedObject.objectId } });
+    }
+    if (sub.startsWith('annotatedtags/') && method === 'GET') {
+      const tag = Object.keys(r.tags).find((t) => `tagobj-${t}` === decodeURIComponent(sub.slice('annotatedtags/'.length)));
+      if (!tag || !r.tagDates?.[tag]) return json(404, { message: 'tag object not found' });
+      return json(200, { name: tag, objectId: `tagobj-${tag}`, taggedBy: { date: r.tagDates[tag] } });
+    }
+    if (sub.startsWith('commits/') && method === 'GET') {
+      const c = r.commits.find((x) => x.commitId === sub.slice('commits/'.length));
+      if (!c) return json(404, { message: 'commit not found' });
+      return json(200, { commitId: c.commitId, comment: c.comment, committer: { date: c.date } });
     }
     if (sub === 'commits') {
       const toV = q.get('searchCriteria.compareVersion.version');

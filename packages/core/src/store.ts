@@ -10,7 +10,7 @@ import {
   type PackageSummary,
   type RenderContext,
 } from './render.js';
-import type { FileChange, ReleaseRecord, WikiLocation } from './types.js';
+import { releaseDate, type FileChange, type ReleaseRecord, type WikiLocation } from './types.js';
 import { wikiPageUrl } from './urls.js';
 import { encodePageName, pageFilePath, pageFolderPath, pagePath } from './wikiname.js';
 
@@ -301,6 +301,7 @@ function upsertSummary(packages: PackageSummary[], pkg: string, latest: ReleaseR
     package: pkg,
     latestVersion: latest.version,
     publishedAt: latest.publishedAt,
+    releasedAt: releaseDate(latest),
     prerelease: latest.prerelease,
   };
   return [...packages.filter((p) => p.package !== pkg), summary];
