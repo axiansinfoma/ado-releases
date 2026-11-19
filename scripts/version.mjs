@@ -52,9 +52,14 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
-/** Write an object as JSON with 2-space indentation and a trailing newline. */
-function writeJson(path, data) {
-  writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+/** Replace the first match of pattern in a file with replacement; exit 1 if there is no match. */
+function replaceOnce(path, pattern, replacement) {
+  const text = readFileSync(path, 'utf8');
+  if (!pattern.test(text)) {
+    process.stderr.write(`error: ${pattern} not found in ${path}\n`);
+    process.exit(1);
+  }
+  writeFileSync(path, text.replace(pattern, replacement));
 }
 
 /** Current versions: { extension: "X.Y.Z", task: "X.Y.Z" }. */
@@ -75,12 +80,13 @@ if (command === 'show') {
 } else if (command === 'set') {
   if (!arg || !SEMVER.test(arg)) usageError('set needs a version X.Y.Z (no pre-release; tasks only support numbers)');
   const [Major, Minor, Patch] = arg.split('.').map(Number);
-  const manifest = readJson(MANIFEST);
-  manifest.version = arg;
-  writeJson(MANIFEST, manifest);
-  const task = readJson(TASK);
-  task.version = { Major, Minor, Patch };
-  writeJson(TASK, task);
+  // Replace only the numbers, so the files keep their hand-written formatting.
+  replaceOnce(MANIFEST, /("version"\s*:\s*")[^"]*(")/, `$1${arg}$2`);
+  replaceOnce(TASK, /("Major"\s*:\s*)\d+/, `$1${Major}`);
+  replaceOnce(TASK, /("Minor"\s*:\s*)\d+/, `$1${Minor}`);
+  replaceOnce(TASK, /("Patch"\s*:\s*)\d+/, `$1${Patch}`);
+  const v = versions();
+  if (v.extension !== arg || v.task !== arg) usageError(`could not set the version (now extension ${v.extension}, task ${v.task})`);
   console.log(`set extension and task version to ${arg}`);
 } else if (command === 'check') {
   const v = versions();
