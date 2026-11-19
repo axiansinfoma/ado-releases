@@ -119,7 +119,7 @@ See [AGENTS.md](AGENTS.md) for structure, commands and conventions.
 2. Publish a GitHub release with the tag `v0.2.0`. The [Publish](.github/workflows/publish.yml) workflow then:
    - checks that the tag matches both versions;
    - tests, builds and packages the extension;
-   - publishes it to the Visual Studio Marketplace;
+   - publishes it to the Visual Studio Marketplace and waits up to 12 minutes for the Marketplace validation (a validation error fails the run; still pending only warns);
    - attaches the `.vsix` to the release, also when the Marketplace publish fails or the release is a pre-release.
 
    For a pre-release, the workflow packages but doesn't publish. Run it manually to package only (`dry_run`, the default) or to publish without a release.

@@ -97,8 +97,26 @@ jobs:
             exit 1
           fi
           echo "::add-mask::$credential"
-          # 3. tfx sends it as basic auth, like a PAT.
-          npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt
+          # 3. tfx sends it as basic auth, like a PAT. Upload without tfx's own validation wait: it
+          #    gives up after about 4 minutes, while the Marketplace validation can take longer.
+          npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt --no-wait-validation
+          # 4. Wait for the validation while the credential is still valid (15 minutes). Fail on a
+          #    validation error; if it is still pending, warn: the Marketplace finishes it on its own.
+          version="$(node -p "require('./vss-extension.json').version")"
+          id="$(node -p "require('./vss-extension.json').id")"
+          status=pending
+          for _ in $(seq 1 24); do
+            sleep 30
+            status="$( (npx --yes tfx-cli@0.24.2 extension isvalid --publisher "$publisher" --extension-id "$id" --version "$version" \
+              --auth-type pat --token "$credential" --no-prompt --json || true) | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=s.match(/\{[\s\S]*\}/);const r=m?JSON.parse(m[0]):{status:"pending"};console.log(r.status==="error"?`error: ${r.message}`:r.status)})')"
+            echo "validation: $status"
+            [ "$status" = pending ] || break
+          done
+          case "$status" in
+            success) echo "Published $publisher.$id $version." ;;
+            pending) echo "::warning::Validation of $version is still running in the Marketplace; check Manage publisher." ;;
+            *) echo "::error::Marketplace validation of $version failed: $status"; exit 1 ;;
+          esac
 
       # Runs even when the publish step failed (e.g. the version is already on the Marketplace),
       # so every release with a successful build carries its vsix.
