@@ -7,7 +7,7 @@ name: Publish
 # Authentication without stored secrets: Marketplace trusted publishing. GitHub issues an OIDC
 # token for the audience marketplace.visualstudio.com, the Marketplace exchanges it for a
 # publisher credential valid for 15 minutes, and tfx uses that credential where it expects a PAT
-# (same basic auth as vsce --oidc). Setup (see README "Releasing"): a Trusted Publishing policy on
+# (same basic auth as vsce --oidc). Setup (see CONTRIBUTING.md "Releasing"): a Trusted Publishing policy on
 # the publisher for this repository, workflow publish.yml and environment "marketplace".
 # Sharing of a private extension with organizations is done once in the Marketplace and kept
 # across updates.

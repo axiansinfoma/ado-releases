@@ -33,7 +33,7 @@ npx tfx-cli@0.24.2 extension create --manifest-globs vss-extension.json   # need
 node scripts/version.mjs set X.Y.Z   # extension + task version together; `check [vX.Y.Z]` in CI/publish
 ```
 
-Releases: publishing a GitHub release `vX.Y.Z` runs `.github/workflows/publish.yml` (Marketplace trusted publishing: GitHub OIDC token exchanged for a short-lived publisher credential, passed to `tfx` as a PAT; environment `marketplace`, no stored secret). Never change only one of the two versions: agents only fetch a task whose version increased.
+Releases (steps and one-time setup in `CONTRIBUTING.md`): publishing a GitHub release `vX.Y.Z` runs `.github/workflows/publish.yml` (Marketplace trusted publishing: GitHub OIDC token exchanged for a short-lived publisher credential, passed to `tfx` as a PAT; environment `marketplace`, no stored secret). Never change only one of the two versions: agents only fetch a task whose version increased.
 
 In memory-limited dev containers, wrap these in `memguard --` where available.
 
@@ -46,7 +46,7 @@ In memory-limited dev containers, wrap these in `memguard --` where available.
 - **Wiki file names.** Page files use the wiki encoding (`wikiname.ts`). Data files under `/.releases/` use plain names, because consumers build URLs to them. Every derived file can be rebuilt from `index.json` (and from the metadata comment on each release page).
 - **Push changeType.** It must be `add` for new files and `edit` for existing ones; the store lists existing files on every attempt.
 - **Tests.** They run against `packages/core/test/fake-ado.ts`, an in-memory fake of the endpoints. Extend it when the client uses a new endpoint, and probe the real API first, read-only.
-- **Help text.** Keep the CLI `USAGE` text, the `task.json` inputs and the README in sync with the options.
+- **Help text.** Keep the CLI `USAGE` text, the `task.json` inputs and the README in sync. The README is also the Marketplace details page: link repository files with absolute GitHub URLs, not relative paths with the options.
 - **Nothing organisation-specific in this repository.** No org or project names, URLs or internal package names, except in tests using fake names.
 - **Hub UI library.** No `azure-devops-ui` (it peers on React 16) and no `azure-devops-extension-api` (it peers on SDK <= 4). Styling uses the theme CSS variables the host injects (`--background-color`, `--text-primary-color`, `--communication-background`, `--palette-neutral-*`), with light-theme fallbacks in `styles.css`.
 - **Hub tokens.** `SDK.getAccessToken()` tokens expire, so create a client per operation (`withStore` in `src/env.ts`). The token has the manifest scopes (`vso.code_write`); changing `scopes` makes every organization re-authorize the extension.

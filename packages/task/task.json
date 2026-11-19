@@ -4,7 +4,7 @@
   "name": "PublishRelease",
   "friendlyName": "Publish release",
   "description": "Generate release notes for a tag from the merged pull requests and publish the release to the project wiki (release pages and a Renovate-compatible releases.json).",
-  "helpMarkDown": "Needs the job access token with Contribute on the wiki repository and Read on the source repository. See the extension README.",
+  "helpMarkDown": "Needs the job access token with Contribute on the wiki repository and Read on the source repository. See https://github.com/axiansinfoma/ado-releases#readme.",
   "category": "Utility",
   "author": "ado-releases",
   "version": {
