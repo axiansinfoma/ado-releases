@@ -124,15 +124,14 @@ See [AGENTS.md](AGENTS.md) for structure, commands and conventions.
 
    For a pre-release, the workflow packages but doesn't publish. Run it manually to package only (`dry_run`, the default) or to publish without a release.
 
-Publishing uses no stored secret. The workflow signs in to Microsoft Entra with GitHub OIDC (a federated credential, nothing expires) and passes the resulting Azure DevOps token to `tfx` where it expects a PAT. One-time setup:
+Publishing uses no stored secret. It uses the Marketplace's [trusted publishing](https://learn.microsoft.com/en-us/azure/devops/extend/publish/overview?view=azure-devops#publish-with-oidc-trusted-publishing): the workflow exchanges a GitHub OIDC token for a publisher credential that is valid for 15 minutes and passes it to `tfx` where it expects a PAT. One-time setup:
 
-1. Create an app registration in the Microsoft Entra tenant that is connected to your Azure DevOps organization. Add a federated credential:
-   - issuer `https://token.actions.githubusercontent.com`
-   - subject `repo:<owner>/<repo>:environment:marketplace`
-   - audience `api://AzureADTokenExchange`
-2. Create the GitHub environment `marketplace` with the variables `AZURE_CLIENT_ID` and `AZURE_TENANT_ID`. These are not secrets. Optionally limit the environment to tags and reviewers.
-3. Run the Publish workflow manually (`dry_run`). It prints the service principal's Azure DevOps profile ID.
-4. Add that ID as a member of the Marketplace publisher (Manage publisher → Members), with a role that may publish.
+1. In the Marketplace, open the publisher (Manage publisher), select **Trusted Publishing** and create a policy:
+   - provider GitHub Actions
+   - repository owner and repository of this repository
+   - workflow `publish.yml`
+   - environment `marketplace`
+2. Create the GitHub environment `marketplace`. Optionally limit it to tags and reviewers.
 
 While the extension is private (`"public": false` in `vss-extension.json`), share it with organizations once in the Marketplace; updates keep the sharing.
 

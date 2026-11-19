@@ -4,13 +4,11 @@ name: Publish
 # The release tag (vX.Y.Z) must equal the version in vss-extension.json and packages/task/task.json
 # (set both with `node scripts/version.mjs set X.Y.Z`). Pre-releases are packaged but not published.
 #
-# Authentication without stored secrets: GitHub OIDC -> Microsoft Entra service principal
-# (federated credential, nothing expires) -> Entra token for Azure DevOps, which tfx accepts in
-# place of a PAT. Setup (see README "Releasing"):
-#   - app registration with a federated credential for this repository's environment "marketplace"
-#   - environment variables AZURE_CLIENT_ID and AZURE_TENANT_ID (not secrets)
-#   - the service principal is a member of the Marketplace publisher; the manual run with
-#     dry_run prints the profile ID to add
+# Authentication without stored secrets: Marketplace trusted publishing. GitHub issues an OIDC
+# token for the audience marketplace.visualstudio.com, the Marketplace exchanges it for a
+# publisher credential valid for 15 minutes, and tfx uses that credential where it expects a PAT
+# (same basic auth as vsce --oidc). Setup (see README "Releasing"): a Trusted Publishing policy on
+# the publisher for this repository, workflow publish.yml and environment "marketplace".
 # Sharing of a private extension with organizations is done once in the Marketplace and kept
 # across updates.
 
@@ -76,35 +74,31 @@ jobs:
           path: ${{ steps.package.outputs.vsix }}
           if-no-files-found: error
 
-      - name: Sign in to Microsoft Entra (OIDC, no secret)
-        if: vars.AZURE_CLIENT_ID != ''
-        uses: azure/login@v3.1.0
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          allow-no-subscriptions: true
-
-      # The publisher member to add is this profile ID (not secret); printed on every run.
-      - name: Show Azure DevOps profile of the service principal
-        if: vars.AZURE_CLIENT_ID != ''
-        run: |
-          az rest -u "https://app.vssps.visualstudio.com/_apis/profile/profiles/me" \
-            --resource 499b84ac-1321-427f-aa17-267ca6975798 \
-            --query "{id:id, displayName:displayName}" -o tsv
-
       - name: Publish to Marketplace
         if: >-
           (github.event_name == 'release' && !github.event.release.prerelease) ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true')
+        env:
+          VSIX: ${{ steps.package.outputs.vsix }}
         run: |
-          if [ -z "${{ vars.AZURE_CLIENT_ID }}" ]; then
-            echo "::error::Environment variables AZURE_CLIENT_ID / AZURE_TENANT_ID are not set (environment marketplace)."
+          set -euo pipefail
+          publisher="$(node -p "require('./vss-extension.json').publisher")"
+          # 1. GitHub OIDC token for the Marketplace audience (needs id-token: write).
+          oidc="$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=marketplace.visualstudio.com" | jq -r .value)"
+          echo "::add-mask::$oidc"
+          # 2. Exchange it for a short-lived publisher credential (trusted publishing policy).
+          credential="$(curl -fsS -X POST \
+            -H "Authorization: FederatedToken $oidc" -H "Content-Type: application/json" \
+            -d "{\"publisherName\":\"$publisher\"}" \
+            "https://marketplace.visualstudio.com/_apis/gallery/token?api-version=7.2-preview.1" | jq -r .credential)"
+          if [ -z "$credential" ] || [ "$credential" = null ]; then
+            echo "::error::Marketplace token exchange returned no credential. Check the Trusted Publishing policy (repository, publish.yml, environment marketplace)."
             exit 1
           fi
-          # Entra token for Azure DevOps (resource 499b84ac-...), passed where tfx expects a PAT.
-          token="$(az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query accessToken -o tsv)"
-          echo "::add-mask::$token"
-          npx --yes tfx-cli@0.24.2 extension publish --vsix "${{ steps.package.outputs.vsix }}" --auth-type pat --token "$token" --no-prompt
+          echo "::add-mask::$credential"
+          # 3. tfx sends it as basic auth, like a PAT.
+          npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt
 
       - name: Attach VSIX to the release
         if: github.event_name == 'release'
