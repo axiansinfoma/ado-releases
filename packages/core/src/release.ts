@@ -2,7 +2,7 @@ import type { AdoClient, GitRepository, VersionRef } from './ado.js';
 import { generateNotes, type GeneratedNotes } from './notes.js';
 import type { WikiStore } from './store.js';
 import type { FileChange, ReleaseRecord } from './types.js';
-import { compareVersions, formatTag, isPrerelease, parseTag } from './version.js';
+import { bumpVersion, compareVersions, formatTag, isPrerelease, parseTag, type ChangeType } from './version.js';
 
 /**
  * Highest tag of the same package below `version`. For a stable version, pre-releases are skipped,
@@ -26,6 +26,48 @@ export async function findPreviousTag(
     if (!best || compareVersions(parsed.version, best.version) > 0) best = { tag: t.name, version: parsed.version };
   }
   return best?.tag;
+}
+
+/** A version tag of a package. */
+export interface PackageTag {
+  tag: string;
+  version: string;
+  commitId: string;
+}
+
+/** Version tags of one package (exact prefix), newest first. */
+export async function listPackageTags(
+  client: AdoClient,
+  project: string,
+  repository: GitRepository,
+  prefix: string,
+): Promise<PackageTag[]> {
+  const tags = await client.listTags(project, repository.id, prefix ? `${prefix}/v` : 'v');
+  const out: PackageTag[] = [];
+  for (const t of tags) {
+    const parsed = parseTag(t.name);
+    if (parsed && parsed.prefix === prefix) out.push({ tag: t.name, version: parsed.version, commitId: t.commitId });
+  }
+  return out.sort((a, b) => compareVersions(b.version, a.version));
+}
+
+/** Tag prefixes (packages) that have version tags in a repository; "" stands for plain v<semver> tags. */
+export async function listTagPrefixes(client: AdoClient, project: string, repository: GitRepository): Promise<string[]> {
+  const prefixes = new Set<string>();
+  for (const t of await client.listTags(project, repository.id)) {
+    const parsed = parseTag(t.name);
+    if (parsed) prefixes.add(parsed.prefix);
+  }
+  return [...prefixes].sort();
+}
+
+/**
+ * Next version for a package: the highest stable version bumped by the change type, or the
+ * first version (0.1.0 / 0.0.1 / 1.0.0) when there is none.
+ */
+export function proposeVersion(versions: string[], change: ChangeType): string {
+  const stable = versions.filter((v) => !isPrerelease(v)).sort(compareVersions);
+  return bumpVersion(stable[stable.length - 1], change);
 }
 
 export interface PublishReleaseOptions {

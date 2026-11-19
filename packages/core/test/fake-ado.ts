@@ -12,6 +12,8 @@ export interface FakeRepo {
   prs: Array<{ pullRequestId: number; title: string; description: string; lastMergeCommit: string; commits: string[] }>;
   files: Map<string, string>;
   head: string;
+  /** Branch name -> head commit; default { main: head }. */
+  branches?: Record<string, string>;
 }
 
 export class FakeAdo {
@@ -67,6 +69,10 @@ export class FakeAdo {
     }
     if (sub === 'refs') {
       const filter = q.get('filter') ?? '';
+      if (filter === 'heads/') {
+        const branches = r.branches ?? { main: r.head };
+        return json(200, { value: Object.entries(branches).map(([n, c]) => ({ name: `refs/heads/${n}`, objectId: c })) });
+      }
       if (filter.startsWith('heads/')) {
         return json(200, { value: [{ name: `refs/${filter}`, objectId: r.head }] });
       }
@@ -125,7 +131,7 @@ export class FakeAdo {
       }
       const scope = q.get('scopePath')!;
       const value = [...r.files.keys()]
-        .filter((p) => p.startsWith(scope + '/'))
+        .filter((p) => p === scope || p.startsWith(scope + '/'))
         .map((path) => ({ path, gitObjectType: 'blob' }));
       return value.length ? json(200, { value }) : json(404, { message: 'TF401174' });
     }
@@ -143,9 +149,14 @@ export class FakeAdo {
       }));
       for (const c of changes) {
         if (c.changeType === 'add' && r.files.has(c.path)) return json(400, { message: `add of existing ${c.path}` });
-        if (c.changeType === 'edit' && !r.files.has(c.path)) return json(400, { message: `edit of missing ${c.path}` });
+        if ((c.changeType === 'edit' || c.changeType === 'delete') && !r.files.has(c.path)) {
+          return json(400, { message: `${c.changeType} of missing ${c.path}` });
+        }
       }
-      for (const c of changes) r.files.set(c.path, c.content);
+      for (const c of changes) {
+        if (c.changeType === 'delete') r.files.delete(c.path);
+        else r.files.set(c.path, c.content);
+      }
       this.pushes.push({ repo: r.name, comment: body.commits[0].comment, changes });
       r.head = `push${this.pushes.length}`;
       return json(201, { commits: [{ commitId: r.head }] });

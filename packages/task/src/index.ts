@@ -13,6 +13,24 @@ export function input(name: string, env: NodeJS.ProcessEnv = process.env): strin
   return value ? value : undefined;
 }
 
+/**
+ * Boolean or pickList input, case-insensitive: template expressions pass booleans as "True"/"False".
+ * Returns the lowercase value, `fallback` when empty; throws on a value outside `allowed`.
+ */
+export function choice<T extends string>(
+  name: string,
+  allowed: readonly T[],
+  fallback: T,
+  env: NodeJS.ProcessEnv = process.env,
+): T {
+  const value = input(name, env)?.toLowerCase();
+  if (value === undefined) return fallback;
+  if (!(allowed as readonly string[]).includes(value)) {
+    throw new Error(`input ${name} must be one of ${allowed.join(', ')}, got "${input(name, env)}"`);
+  }
+  return value as T;
+}
+
 /** The job access token (System.AccessToken) from the SystemVssConnection endpoint. */
 export function accessToken(env: NodeJS.ProcessEnv = process.env): string {
   const raw = env.ENDPOINT_AUTH_SYSTEMVSSCONNECTION;
@@ -42,9 +60,9 @@ export async function run(env: NodeJS.ProcessEnv = process.env): Promise<void> {
   const repository = input('repository', env) ?? env.BUILD_REPOSITORY_NAME ?? '';
   const org = env.SYSTEM_COLLECTIONURI ?? env.SYSTEM_TEAMFOUNDATIONCOLLECTIONURI;
   if (!org) throw new Error('SYSTEM_COLLECTIONURI is not set');
-  const ifExists = input('ifExists', env) ?? 'skip';
-  const prerelease = input('prerelease', env) ?? 'auto';
-  const dryRun = input('dryRun', env) === 'true';
+  const ifExists = choice('ifExists', ['skip', 'fail', 'replace'], 'skip', env);
+  const prerelease = choice('prerelease', ['auto', 'true', 'false'], 'auto', env);
+  const dryRun = choice('dryRun', ['true', 'false'], 'false', env) === 'true';
 
   const client = new AdoClient({ organizationUrl: org, token: accessToken(env) });
   const wikiProject = input('wikiProject', env) ?? project;

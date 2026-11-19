@@ -6,7 +6,7 @@ GitHub-style releases for Azure Repos. Azure DevOps has tags but no releases. Th
 - **Release pages in the project wiki.** One page per release, an overview per package and per repository. They are readable by people and stored outside your source repositories.
 - **A `releases.json` per package for [Renovate](https://docs.renovatebot.com/).** It uses the [custom datasource](https://docs.renovatebot.com/modules/datasource/custom/) format with `changelogContent`, so Renovate PRs for your internal packages carry release notes, as they do for packages on GitHub.
 
-Status: early development. Available now: the core library, a CLI and the pipeline task **Publish release**. A **Releases** page in Azure Repos (list, draft, generate notes, publish) is planned.
+Status: early development. Available: a **Releases** page in Azure Repos, the pipeline task **Publish release**, a CLI and the core library they share.
 
 ## How it works
 
@@ -24,6 +24,20 @@ source repository                 project wiki repository (e.g. MyProject.wiki)
 - **Previous tag.** By default it is the highest tag of the same package below the new version. For a stable version, pre-release tags are skipped, so the notes of `1.2.0` cover everything since `1.1.0`.
 - **Writes.** Each publish is one atomic commit to the wiki repository, made through the Git Pushes API. If the branch moved meanwhile, it retries.
 - **Data folder.** Files under `/.releases/` don't show in the wiki tree, and they use plain names so other tools can build their URLs.
+
+## Releases page in Azure Repos
+
+The extension adds **Repos › Releases** next to Tags. For the selected Git repository it shows:
+
+- **The release list**, newest first. Each release has Latest / Pre-release badges, rendered notes, links to the tag, the changes since the previous tag and the wiki page, and a filter by package in monorepos.
+- **Draft a new release**, as on GitHub:
+  1. Choose the package (tag prefix) and either an existing tag without a release or a new version. A new tag is created on the chosen branch when you publish.
+  2. **Generate release notes** from the PRs since the previous tag. The previous tag is detected automatically and can be overridden. For a new tag, the next version is proposed from the PR titles: `feat` → minor, `fix` → patch, `!` → major.
+  3. Edit the notes with a Markdown preview, mark the release as a pre-release if needed, and publish.
+- **A release page** (`?view=release&package=…&version=…`), which you can link to directly. It has **Edit** (title, notes, pre-release) and **Delete**. Delete removes the release from the wiki; the git tag stays.
+- **Settings** per project: wiki project, wiki repository, branch and root page. They default to `<project>.wiki`, its default branch and `Releases`.
+
+The page acts as the signed-in user. Publishing needs **Contribute** on the wiki repository, and **Create tag** on the repository when the page creates a new tag.
 
 ## Pipeline task: Publish release
 

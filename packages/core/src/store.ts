@@ -160,14 +160,97 @@ export class WikiStore {
     repositoryWebUrl: string,
     opts: { dryRun?: boolean; allowReplace?: boolean; retries?: number } = {},
   ): Promise<{ files: FileChange[]; commitId?: string }> {
+    return this.mutate(record.repository, record.package, `Release ${record.package} ${record.version}`, opts, async (state) => {
+      if (!opts.allowReplace && state.existing.some((r) => r.version === record.version)) {
+        throw new Error(`release ${record.package} ${record.version} already exists`);
+      }
+      const files = await this.planPublish(record, state.existing, state.existingFiles, repositoryWebUrl, state.packages);
+      return { files, deletes: [] };
+    });
+  }
+
+  /**
+   * Remove a release from the wiki: deletes its page and rewrites .order, the overviews, index.json,
+   * releases.json and packages.json; moves the Latest badge. The git tag is not touched.
+   * Removing the last release of a package removes the package's pages and data files.
+   */
+  async remove(
+    repository: string,
+    pkg: string,
+    version: string,
+    repositoryWebUrl: string,
+    opts: { dryRun?: boolean; retries?: number } = {},
+  ): Promise<{ files: FileChange[]; deletes: string[]; commitId?: string }> {
+    return this.mutate(repository, pkg, `Remove release ${pkg} ${version}`, opts, async (state) => {
+      const removed = state.existing.find((r) => r.version === version);
+      if (!removed) throw new Error(`release ${pkg} ${version} does not exist`);
+      return this.planRemove(removed, state.existing, state.existingFiles, repositoryWebUrl, state.packages);
+    });
+  }
+
+  /** Files to write and delete for removing `removed` from `existing`. */
+  async planRemove(
+    removed: ReleaseRecord,
+    existing: ReleaseRecord[],
+    existingFiles: Set<string>,
+    repositoryWebUrl: string,
+    packages: PackageSummary[],
+  ): Promise<{ files: FileChange[]; deletes: string[] }> {
+    const ctx = await this.renderContext(repositoryWebUrl);
+    const { repository, package: pkg } = removed;
+    const records = sortNewestFirst(existing.filter((r) => r.version !== removed.version));
+    const segs = this.packageSegments(repository, pkg);
+    const data = this.dataFolder(repository, pkg);
+    const files: FileChange[] = [];
+    const deletes = [pageFilePath([...segs, removed.version])];
+    let summaries: PackageSummary[];
+
+    if (records.length) {
+      const latest = latestRelease(records)!;
+      if (latestRelease(existing)?.version !== latest.version) {
+        files.push({ path: pageFilePath([...segs, latest.version]), content: renderReleasePage(latest, ctx, true) });
+      }
+      files.push({ path: pageFolderPath(segs) + '/.order', content: records.map((r) => encodePageName(r.version)).join('\n') + '\n' });
+      files.push({ path: pageFilePath(segs), content: renderPackagePage(repository, pkg, records, ctx) });
+      files.push({ path: `${data}/index.json`, content: JSON.stringify({ schema: 1, records }, null, 2) + '\n' });
+      files.push({
+        path: `${data}/releases.json`,
+        content: JSON.stringify(renderRenovateReleases(repository, pkg, records, ctx), null, 2) + '\n',
+      });
+      summaries = upsertSummary(packages, pkg, latest);
+    } else {
+      for (const p of [pageFolderPath(segs) + '/.order', pageFilePath(segs), `${data}/index.json`, `${data}/releases.json`]) {
+        if (existingFiles.has(p)) deletes.push(p);
+      }
+      summaries = packages.filter((p) => p.package !== pkg);
+    }
+    if (pkg !== repository) {
+      files.push({ path: pageFilePath([this.root, repository]), content: renderRepositoryPage(repository, summaries, ctx) });
+    }
+    files.push({
+      path: `/${this.dataRoot}/${repository}/packages.json`,
+      content: JSON.stringify({ schema: 1, packages: summaries }, null, 2) + '\n',
+    });
+    return { files, deletes: deletes.filter((d) => existingFiles.has(d)) };
+  }
+
+  /** Read the current state, plan the change, push it as one commit; retry when the branch moved. */
+  private async mutate(
+    repository: string,
+    pkg: string,
+    message: string,
+    opts: { dryRun?: boolean; retries?: number },
+    plan: (state: {
+      existing: ReleaseRecord[];
+      existingFiles: Set<string>;
+      packages: PackageSummary[];
+    }) => Promise<{ files: FileChange[]; deletes: string[] }>,
+  ): Promise<{ files: FileChange[]; deletes: string[]; commitId?: string }> {
     const { repo, branch } = await this.resolve();
     const retries = opts.retries ?? 5;
     for (let attempt = 0; ; attempt++) {
       const head = opts.dryRun ? '' : await this.client.getBranchHead(this.location.project, repo.id, branch);
-      const existing = await this.loadPackage(record.repository, record.package);
-      if (!opts.allowReplace && existing.some((r) => r.version === record.version)) {
-        throw new Error(`release ${record.package} ${record.version} already exists`);
-      }
+      const existing = await this.loadPackage(repository, pkg);
       const existingFiles = new Set([
         ...(await this.client.listFiles(this.location.project, repo.id, pageFolderPath([this.root]), branch)),
         ...(await this.client.listFiles(this.location.project, repo.id, `/${this.dataRoot}`, branch)),
@@ -175,24 +258,17 @@ export class WikiStore {
       // The root page lives next to the root folder.
       const rootPage = pageFilePath([this.root]);
       if (await this.client.getFileText(this.location.project, repo.id, rootPage, branch)) existingFiles.add(rootPage);
-      const packages = await this.loadPackages(record.repository);
-      const files = await this.planPublish(record, existing, existingFiles, repositoryWebUrl, packages);
-      if (opts.dryRun) return { files };
+      const packages = await this.listPackages(repository);
+      const { files, deletes } = await plan({ existing, existingFiles, packages });
+      if (opts.dryRun) return { files, deletes };
 
-      const changes: PushChange[] = files.map((f) => ({
-        ...f,
-        changeType: existingFiles.has(f.path) ? 'edit' : 'add',
-      }));
+      const changes: PushChange[] = [
+        ...files.map((f) => ({ ...f, changeType: existingFiles.has(f.path) ? ('edit' as const) : ('add' as const) })),
+        ...deletes.map((path) => ({ path, content: '', changeType: 'delete' as const })),
+      ];
       try {
-        const commitId = await this.client.push(
-          this.location.project,
-          repo.id,
-          branch,
-          head,
-          `Release ${record.package} ${record.version}`,
-          changes,
-        );
-        return { files, commitId };
+        const commitId = await this.client.push(this.location.project, repo.id, branch, head, message, changes);
+        return { files, deletes, commitId };
       } catch (e) {
         if (!isPushConflict(e) || attempt >= retries) throw e;
         await new Promise((r) => setTimeout(r, 500 * 2 ** attempt + Math.random() * 250));
@@ -200,7 +276,8 @@ export class WikiStore {
     }
   }
 
-  private async loadPackages(repository: string): Promise<PackageSummary[]> {
+  /** Package summaries of a repository (latest version per package), from packages.json. */
+  async listPackages(repository: string): Promise<PackageSummary[]> {
     const { repo, branch } = await this.resolve();
     const text = await this.client.getFileText(
       this.location.project,
@@ -209,6 +286,11 @@ export class WikiStore {
       branch,
     );
     return text ? (JSON.parse(text) as { packages: PackageSummary[] }).packages : [];
+  }
+
+  /** Web URL of a release page. */
+  async releasePageUrl(record: ReleaseRecord, repositoryWebUrl: string): Promise<string> {
+    return (await this.renderContext(repositoryWebUrl)).releasePageUrl(record);
   }
 }
 

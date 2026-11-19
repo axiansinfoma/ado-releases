@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeAdo } from '../../core/test/fake-ado.js';
-import { accessToken, input, run } from '../src/index.js';
+import { accessToken, choice, input, run } from '../src/index.js';
 
 let ado: FakeAdo;
 let out: string[];
@@ -74,5 +74,21 @@ describe('task', () => {
 
   it('rejects a tag that is not a version tag', async () => {
     await expect(run(env({ tag: 'latest' }))).rejects.toThrow(/not/);
+  });
+});
+
+describe('boolean and pickList inputs', () => {
+  it('accepts template booleans "True"/"False" and mixed-case choices', () => {
+    expect(choice('dryRun', ['true', 'false'], 'false', env({ dryrun: 'True' }))).toBe('true');
+    expect(choice('dryRun', ['true', 'false'], 'false', env({ dryrun: 'False' }))).toBe('false');
+    expect(choice('prerelease', ['auto', 'true', 'false'], 'auto', env({ prerelease: 'TRUE' }))).toBe('true');
+    expect(choice('ifExists', ['skip', 'fail', 'replace'], 'skip', env({}))).toBe('skip');
+    expect(() => choice('ifExists', ['skip', 'fail', 'replace'], 'skip', env({ ifexists: 'maybe' }))).toThrow(/one of/);
+  });
+
+  it('honours dryRun "True" from a template: nothing is pushed', async () => {
+    await run(env({ tag: 'v1.1.0', dryrun: 'True', ifexists: 'Skip', prerelease: 'False' }));
+    expect(ado.pushes).toHaveLength(0);
+    expect(out.some((l) => l.startsWith('##vso[task.setvariable variable=releaseVersion;isOutput=true]1.1.0'))).toBe(true);
   });
 });
