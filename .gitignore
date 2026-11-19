@@ -4,3 +4,5 @@ coverage/
 *.vsix
 *.tsbuildinfo
 .env
+package-dev/
+vss-extension.dev.json
