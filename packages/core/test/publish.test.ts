@@ -29,6 +29,7 @@ beforeEach(() => {
         description: 'x\n\n## Release notes\n\nNo behaviour change.',
         lastMergeCommit: 'c4',
         commits: ['c4'],
+        createdBy: { displayName: 'Jane Doe' },
       },
       { pullRequestId: 100, title: 'ci: golangci-lint for Go images', description: '', lastMergeCommit: 'm9', commits: ['c2'] },
     ],
@@ -51,7 +52,8 @@ describe('publishRelease', () => {
     expect(res.record.previousTag).toBe('build-tools/cert-agent/v0.14.3');
     expect(res.record.package).toBe('build-tools/cert-agent');
     expect(res.generated?.changeType).toBe('patch');
-    expect(res.record.notes).toContain('**go-tools:** clear the golangci-lint backlog ([!101]');
+    expect(res.record.notes).toContain('**go-tools:** clear the golangci-lint backlog by Jane Doe in [!101]');
+    expect(res.record.title).toBe('cert-agent v0.14.4');
     expect(res.record.notes).toContain('No behaviour change.');
     expect(res.record.notes).toContain('ci: golangci-lint for Go images'.replace('ci: ', ''));
     expect(res.record.notes).not.toContain('other image');
@@ -151,6 +153,7 @@ describe('publishRelease', () => {
     });
     const res = await publishRelease(client, store, { project: 'Proj', repository: 'Orders-API', tag: 'v1.9.0', now });
     expect(res.record.package).toBe('Orders-API');
+    expect(res.record.title).toBe('v1.9.0');
     expect(res.record.previousTag).toBe('v1.8.0');
     expect(res.record.notes).toContain('rc fix');
     expect(res.record.notes).not.toContain('bump version');

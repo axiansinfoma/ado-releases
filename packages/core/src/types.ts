@@ -34,8 +34,12 @@ export interface ReleaseRecord {
 export interface WikiLocation {
   /** Project that holds the wiki. */
   project: string;
-  /** Wiki repository name or id, e.g. "MyProject.wiki". */
-  repository: string;
+  /**
+   * Wiki repository name or id, e.g. "MyProject.wiki". When omitted, the project wiki is found:
+   * "<project>.wiki", or the project's only hidden "*.wiki" repository (after a project rename the
+   * wiki repository keeps its old name).
+   */
+  repository?: string;
   /** Wiki name used in web URLs. Defaults to the repository name. */
   wikiName?: string;
   /** Branch, e.g. "wikiMaster". Resolved from the repository default branch when omitted. */
@@ -52,6 +56,8 @@ export interface ChangeEntry {
   /** Text of a "Release notes" section in the PR description, if any. */
   releaseNotes?: string;
   commitId?: string;
+  /** Display name of the PR's creator, or the commit author for changes without a PR. */
+  author?: string;
 }
 
 /** Item of a git push: add or edit a file with full text content. */

@@ -5,6 +5,15 @@ import type { FileChange, ReleaseRecord } from './types.js';
 import { bumpVersion, compareVersions, formatTag, isPrerelease, parseTag, type ChangeType } from './version.js';
 
 /**
+ * Title of a release as "Generate release notes" fills it in: "<last package segment> v<version>"
+ * for monorepo packages (e.g. "cert-agent v1.2.3"), "v<version>" for repository-level v-tags.
+ */
+export function releaseTitle(prefix: string, version: string): string {
+  const name = prefix.split('/').filter(Boolean).pop();
+  return name ? `${name} v${version}` : `v${version}`;
+}
+
+/**
  * Highest tag of the same package below `version`. For a stable version, pre-releases are skipped,
  * so the notes of 1.2.0 cover everything since 1.1.0 and not since 1.2.0-rc.1.
  */
@@ -85,6 +94,7 @@ export interface PublishReleaseOptions {
   pathFilter?: string;
   /** Mark as pre-release; defaults to whether the version has a pre-release part. */
   prerelease?: boolean;
+  /** Default: releaseTitle(), e.g. "cert-agent v1.2.3" or "v1.2.3". */
   title?: string;
   /** Notes to use instead of generated ones. */
   notes?: string;
@@ -150,7 +160,7 @@ export async function publishRelease(
     tag: opts.tag,
     previousTag,
     commit,
-    title: opts.title ?? parsed.version,
+    title: opts.title ?? releaseTitle(parsed.prefix, parsed.version),
     notes: opts.notes ?? generated!.markdown,
     prerelease: opts.prerelease ?? isPrerelease(parsed.version),
     publishedAt: opts.publishedAt ?? (opts.now?.() ?? new Date()).toISOString(),

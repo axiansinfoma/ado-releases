@@ -65,7 +65,7 @@ export function SettingsView({ env }: { env: Env }) {
       ) : (
         <div className="form">
           {field('wikiProject', 'Wiki project', defaults.project)}
-          {field('wiki', 'Wiki repository', '<wiki project>.wiki')}
+          {field('wiki', 'Wiki repository', 'project wiki (found automatically)')}
           {field('branch', 'Wiki branch', "the wiki repository's default branch")}
           {field('root', 'Root page', defaults.root ?? 'Releases')}
           {error && <div className="error">{error}</div>}

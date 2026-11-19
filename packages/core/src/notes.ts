@@ -1,4 +1,4 @@
-import type { AdoClient, GitRepository, VersionRef } from './ado.js';
+import type { AdoClient, GitRepository, PullRequestRef, VersionRef } from './ado.js';
 import { changeTypeOf, cleanTitle, parseConventionalTitle, sectionOf, type ConventionalTitle } from './conventional.js';
 import type { ChangeEntry } from './types.js';
 import type { ChangeType } from './version.js';
@@ -53,10 +53,12 @@ export async function generateNotes(client: AdoClient, opts: GenerateNotesOption
       seenPrs.add(pr.pullRequestId);
       let description = pr.description;
       let title = pr.title;
-      if (description === undefined || !title) {
+      let author = (pr as PullRequestRef).createdBy?.displayName;
+      if (description === undefined || !title || !author) {
         const full = await client.getPullRequest(project, repository.id, pr.pullRequestId);
         description = full.description;
         title = full.title;
+        author = full.createdBy?.displayName;
       }
       changes.push({
         pullRequestId: pr.pullRequestId,
@@ -64,10 +66,11 @@ export async function generateNotes(client: AdoClient, opts: GenerateNotesOption
         url: pullRequestUrl(repository, pr.pullRequestId),
         releaseNotes: extractReleaseNotesSection(description ?? ''),
         commitId: c.commitId,
+        author,
       });
     } else if (!SKIP_CI.test(c.comment.split('\n')[0]!)) {
       // Direct pushes without a PR. Pipeline housekeeping commits ([skip ci]) are left out.
-      changes.push({ title: c.comment, commitId: c.commitId });
+      changes.push({ title: c.comment, commitId: c.commitId, author: c.author?.name });
     }
   }
 
@@ -120,14 +123,16 @@ export function renderNotes(changes: ChangeEntry[], compareLink?: string): strin
   for (const change of changes) {
     const t: ConventionalTitle = parseConventionalTitle(change.title, change.releaseNotes ?? '');
     const scope = t.scope ? `**${t.scope}:** ` : '';
+    // like GitHub: "… by <author> in <PR>"; changes without a PR show the commit
+    const by = change.author ? ` by ${escapeInline(change.author)}` : '';
     const ref =
       change.pullRequestId !== undefined
         ? change.url
-          ? ` ([!${change.pullRequestId}](${change.url}))`
-          : ` (!${change.pullRequestId})`
+          ? `${by} in [!${change.pullRequestId}](${change.url})`
+          : `${by} in !${change.pullRequestId}`
         : change.commitId
-          ? ` (${change.commitId.slice(0, 8)})`
-          : '';
+          ? `${by} (${change.commitId.slice(0, 8)})`
+          : by;
     let entry = `- ${scope}${escapeInline(t.type === 'other' ? cleanTitle(change.title) : t.description)}${ref}`;
     if (change.releaseNotes) {
       entry += '\n' + change.releaseNotes.split('\n').map((l) => (l ? `  ${l}` : '')).join('\n');

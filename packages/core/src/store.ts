@@ -41,7 +41,9 @@ export class WikiStore {
 
   private async resolve(): Promise<{ repo: GitRepository; branch: string; wikiName: string }> {
     if (!this.resolved) {
-      const repo = await this.client.getRepository(this.location.project, this.location.repository);
+      const repo = this.location.repository
+        ? await this.client.getRepository(this.location.project, this.location.repository)
+        : await this.client.findProjectWikiRepository(this.location.project);
       const branch = (this.location.branch ?? repo.defaultBranch ?? 'wikiMaster').replace(/^refs\/heads\//, '');
       this.resolved = { repo, branch, wikiName: this.location.wikiName ?? repo.name };
     }

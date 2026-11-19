@@ -8,12 +8,21 @@ export interface FakeRepo {
   defaultBranch: string;
   tags: Record<string, string>; // tag -> commit
   /** Commits newest first with the paths they touch. */
-  commits: Array<{ commitId: string; comment: string; paths: string[] }>;
-  prs: Array<{ pullRequestId: number; title: string; description: string; lastMergeCommit: string; commits: string[] }>;
+  commits: Array<{ commitId: string; comment: string; paths: string[]; author?: string }>;
+  prs: Array<{
+    pullRequestId: number;
+    title: string;
+    description: string;
+    lastMergeCommit: string;
+    commits: string[];
+    createdBy?: { displayName: string };
+  }>;
   files: Map<string, string>;
   head: string;
   /** Branch name -> head commit; default { main: head }. */
   branches?: Record<string, string>;
+  /** Hidden like a project wiki repository (only listed with includeHidden). */
+  hidden?: boolean;
 }
 
 export class FakeAdo {
@@ -41,10 +50,8 @@ export class FakeAdo {
     return r;
   }
 
-  private repo(idOrName: string): FakeRepo {
-    const r = this.repos.get(decodeURIComponent(idOrName));
-    if (!r) throw new Error(`no repo ${idOrName}`);
-    return r;
+  private repo(idOrName: string): FakeRepo | undefined {
+    return this.repos.get(decodeURIComponent(idOrName));
   }
 
   private range(r: FakeRepo, version: string, type: string): Set<string> {
@@ -58,9 +65,25 @@ export class FakeAdo {
     const q = url.searchParams;
     const method = init.method ?? 'GET';
     const body = init.body ? JSON.parse(String(init.body)) : undefined;
+    if (/\/_apis\/git\/repositories$/.test(url.pathname)) {
+      const includeHidden = q.get('includeHidden') === 'true';
+      const value = [...new Set(this.repos.values())]
+        .filter((x) => includeHidden || !x.hidden)
+        .map((x) => ({
+          id: x.id,
+          name: x.name,
+          defaultBranch: x.defaultBranch,
+          webUrl: `${this.org}/${this.project}/_git/${x.name}`,
+          project: { id: 'p', name: this.project },
+        }));
+      return json(200, { value });
+    }
     const m = /\/_apis\/git\/repositories\/([^/]+)(?:\/(.*))?$/.exec(url.pathname);
     if (!m) return json(404, { message: 'not found' });
     const r = this.repo(m[1]!);
+    if (!r) {
+      return json(404, { message: `TF401019: The Git repository with name or identifier ${decodeURIComponent(m[1]!)} does not exist` });
+    }
     const sub = m[2] ?? '';
     const webUrl = `${this.org}/${this.project}/_git/${r.name}`;
 
@@ -105,7 +128,7 @@ export class FakeAdo {
         .filter((c) => ids.has(c.commitId))
         .filter((c) => !itemPath || c.paths.some((p) => p.startsWith(itemPath)))
         .slice(skip, skip + top)
-        .map((c) => ({ commitId: c.commitId, comment: c.comment }));
+        .map((c) => ({ commitId: c.commitId, comment: c.comment, author: c.author ? { name: c.author } : undefined }));
       return json(200, { count: value.length, value });
     }
     if (sub === 'pullrequestquery') {
