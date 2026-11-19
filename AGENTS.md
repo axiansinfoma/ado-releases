@@ -32,7 +32,7 @@ npx tfx-cli@0.24.2 extension create --manifest-globs vss-extension.json   # need
 node scripts/version.mjs set X.Y.Z   # extension + task version together; `check [vX.Y.Z]` in CI/publish
 ```
 
-Releases: publishing a GitHub release `vX.Y.Z` runs `.github/workflows/publish.yml` (Marketplace publish, secret `MARKETPLACE_PAT`). Never change only one of the two versions: agents only fetch a task whose version increased.
+Releases: publishing a GitHub release `vX.Y.Z` runs `.github/workflows/publish.yml` (Marketplace publish via GitHub OIDC → Entra service principal, environment `marketplace`, no stored secret). Never change only one of the two versions: agents only fetch a task whose version increased.
 
 In memory-limited dev containers, wrap these in `memguard --` where available.
 

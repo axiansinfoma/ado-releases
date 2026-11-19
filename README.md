@@ -124,7 +124,17 @@ See [AGENTS.md](AGENTS.md) for structure, commands and conventions.
 
    For a pre-release, the workflow packages but doesn't publish. Run it manually to package only (`dry_run`, the default) or to publish without a release.
 
-The workflow needs the repository secret `MARKETPLACE_PAT`: an Azure DevOps personal access token of a member of the Marketplace publisher, organization "All accessible organizations", scope **Marketplace (Publish)**. While the extension is private (`"public": false` in `vss-extension.json`), share it with organizations once in the Marketplace; updates keep the sharing.
+Publishing uses no stored secret. The workflow signs in to Microsoft Entra with GitHub OIDC (a federated credential, nothing expires) and passes the resulting Azure DevOps token to `tfx` where it expects a PAT. One-time setup:
+
+1. Create an app registration in the Microsoft Entra tenant that is connected to your Azure DevOps organization. Add a federated credential:
+   - issuer `https://token.actions.githubusercontent.com`
+   - subject `repo:<owner>/<repo>:environment:marketplace`
+   - audience `api://AzureADTokenExchange`
+2. Create the GitHub environment `marketplace` with the variables `AZURE_CLIENT_ID` and `AZURE_TENANT_ID`. These are not secrets. Optionally limit the environment to tags and reviewers.
+3. Run the Publish workflow manually (`dry_run`). It prints the service principal's Azure DevOps profile ID.
+4. Add that ID as a member of the Marketplace publisher (Manage publisher → Members), with a role that may publish.
+
+While the extension is private (`"public": false` in `vss-extension.json`), share it with organizations once in the Marketplace; updates keep the sharing.
 
 ## License
 

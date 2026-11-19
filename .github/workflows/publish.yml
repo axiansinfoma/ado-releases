@@ -4,8 +4,13 @@ name: Publish
 # The release tag (vX.Y.Z) must equal the version in vss-extension.json and packages/task/task.json
 # (set both with `node scripts/version.mjs set X.Y.Z`). Pre-releases are packaged but not published.
 #
-# Secret MARKETPLACE_PAT: Azure DevOps personal access token of a member of the Marketplace
-# publisher, organization "All accessible organizations", scope "Marketplace (Publish)".
+# Authentication without stored secrets: GitHub OIDC -> Microsoft Entra service principal
+# (federated credential, nothing expires) -> Entra token for Azure DevOps, which tfx accepts in
+# place of a PAT. Setup (see README "Releasing"):
+#   - app registration with a federated credential for this repository's environment "marketplace"
+#   - environment variables AZURE_CLIENT_ID and AZURE_TENANT_ID (not secrets)
+#   - the service principal is a member of the Marketplace publisher; the manual run with
+#     dry_run prints the profile ID to add
 # Sharing of a private extension with organizations is done once in the Marketplace and kept
 # across updates.
 
@@ -21,11 +26,13 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   publish:
     name: Publish to Visual Studio Marketplace
     runs-on: ubuntu-latest
+    environment: marketplace
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -69,18 +76,35 @@ jobs:
           path: ${{ steps.package.outputs.vsix }}
           if-no-files-found: error
 
+      - name: Sign in to Microsoft Entra (OIDC, no secret)
+        if: vars.AZURE_CLIENT_ID != ''
+        uses: azure/login@v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      # The publisher member to add is this profile ID (not secret); printed on every run.
+      - name: Show Azure DevOps profile of the service principal
+        if: vars.AZURE_CLIENT_ID != ''
+        run: |
+          az rest -u "https://app.vssps.visualstudio.com/_apis/profile/profiles/me" \
+            --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+            --query "{id:id, displayName:displayName}" -o tsv
+
       - name: Publish to Marketplace
         if: >-
           (github.event_name == 'release' && !github.event.release.prerelease) ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true')
-        env:
-          MARKETPLACE_PAT: ${{ secrets.MARKETPLACE_PAT }}
         run: |
-          if [ -z "$MARKETPLACE_PAT" ]; then
-            echo "::error::Secret MARKETPLACE_PAT is not set."
+          if [ -z "${{ vars.AZURE_CLIENT_ID }}" ]; then
+            echo "::error::Environment variables AZURE_CLIENT_ID / AZURE_TENANT_ID are not set (environment marketplace)."
             exit 1
           fi
-          npx --yes tfx-cli@0.24.2 extension publish --vsix "${{ steps.package.outputs.vsix }}" --auth-type pat --token "$MARKETPLACE_PAT" --no-prompt
+          # Entra token for Azure DevOps (resource 499b84ac-...), passed where tfx expects a PAT.
+          token="$(az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query accessToken -o tsv)"
+          echo "::add-mask::$token"
+          npx --yes tfx-cli@0.24.2 extension publish --vsix "${{ steps.package.outputs.vsix }}" --auth-type pat --token "$token" --no-prompt
 
       - name: Attach VSIX to the release
         if: github.event_name == 'release'
