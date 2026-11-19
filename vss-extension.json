@@ -2,19 +2,21 @@
   "manifestVersion": 1,
   "id": "ado-releases",
   "name": "Releases",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "AxiansInfoma",
   "description": "GitHub-style releases for Azure Repos: release notes from merged pull requests, release pages in the project wiki and a Renovate-compatible releases.json per package.",
   "public": false,
   "categories": ["Azure Repos", "Azure Pipelines"],
   "tags": ["releases", "release notes", "changelog", "renovate", "wiki"],
   "targets": [{ "id": "Microsoft.VisualStudio.Services" }],
+  "scopes": ["vso.code_write"],
   "content": {
     "details": { "path": "README.md" },
     "license": { "path": "LICENSE" }
   },
   "files": [
-    { "path": "packages/task/dist/PublishReleaseV0" }
+    { "path": "packages/task/dist/PublishReleaseV0" },
+    { "path": "packages/hub/dist", "addressable": true, "packagePath": "hub" }
   ],
   "contributions": [
     {
@@ -22,6 +24,18 @@
       "type": "ms.vss-distributed-task.task",
       "targets": ["ms.vss-distributed-task.tasks"],
       "properties": { "name": "packages/task/dist/PublishReleaseV0" }
+    },
+    {
+      "id": "releases-hub",
+      "type": "ms.vss-web.hub",
+      "description": "Releases of the current Git repository: list, draft, generate notes, publish, edit and delete.",
+      "targets": ["ms.vss-code-web.code-hub-group"],
+      "properties": {
+        "name": "Releases",
+        "uri": "hub/releases.html",
+        "iconName": "Rocket",
+        "order": 55
+      }
     }
   ]
 }

@@ -1,0 +1,293 @@
+/* Theme: Azure DevOps injects its theme as CSS variables (SDK init applyTheme: true). Fallbacks = light theme. */
+:root {
+  --rl-bg: var(--background-color, #ffffff);
+  --rl-fg: var(--text-primary-color, rgba(0, 0, 0, 0.9));
+  --rl-muted: var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+  --rl-border: rgba(var(--palette-neutral-8, 234, 234, 234), 1);
+  --rl-surface: rgba(var(--palette-neutral-4, 244, 244, 244), 1);
+  --rl-accent: var(--communication-background, #0078d4);
+  --rl-accent-fg: var(--communication-foreground, #0078d4);
+  --rl-danger: var(--status-error-foreground, #cd4a45);
+  --rl-success: var(--status-success-foreground, #2e7d32);
+  --rl-warning: var(--status-warning-foreground, #b26b00);
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--rl-bg);
+  color: var(--rl-fg);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Helvetica, Ubuntu, Arial, sans-serif;
+  font-size: 14px;
+}
+
+main {
+  max-width: 1100px;
+  padding: 16px 24px 48px;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+a {
+  color: var(--rl-accent-fg);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+code,
+.mono {
+  font-family: Menlo, Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+
+.muted {
+  color: var(--rl-muted);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.toolbar h1 {
+  margin: 0;
+}
+.spacer {
+  flex: 1;
+}
+
+button {
+  font: inherit;
+  border-radius: 2px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button.primary {
+  background: var(--rl-accent);
+  color: #fff;
+}
+button.secondary {
+  background: var(--rl-surface);
+  color: var(--rl-fg);
+  border-color: var(--rl-border);
+}
+button.danger {
+  background: transparent;
+  color: var(--rl-danger);
+  border-color: var(--rl-danger);
+}
+button.link {
+  background: none;
+  border: none;
+  color: var(--rl-accent-fg);
+  padding: 0;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--rl-fg);
+  background: var(--rl-bg);
+  border: 1px solid var(--rl-border);
+  border-radius: 2px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+}
+textarea {
+  width: 100%;
+  font-family: Menlo, Consolas, "Courier New", monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.error {
+  color: var(--rl-danger);
+  border-left: 3px solid var(--rl-danger);
+  padding: 6px 10px;
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+.field-error {
+  color: var(--rl-danger);
+  font-size: 12px;
+}
+
+/* Release cards */
+.release {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 24px;
+  padding: 20px 0;
+  border-top: 1px solid var(--rl-border);
+}
+.release-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  word-break: break-all;
+}
+.release-date {
+  font-weight: 600;
+}
+.release-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.release-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+.release-links {
+  display: flex;
+  gap: 16px;
+  margin: 6px 0 10px;
+  font-size: 13px;
+}
+.badge {
+  border-radius: 12px;
+  padding: 1px 8px;
+  font-size: 12px;
+  border: 1px solid currentColor;
+}
+.badge.latest {
+  color: var(--rl-success);
+}
+.badge.prerelease {
+  color: var(--rl-warning);
+}
+.badge.package {
+  color: var(--rl-muted);
+}
+
+.markdown {
+  line-height: 1.5;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-size: 16px;
+  margin: 16px 0 6px;
+}
+.markdown ul {
+  padding-left: 22px;
+}
+.markdown pre {
+  background: var(--rl-surface);
+  padding: 8px;
+  overflow: auto;
+}
+
+.empty {
+  border: 1px dashed var(--rl-border);
+  padding: 24px;
+  max-width: 720px;
+}
+.empty h2 {
+  font-size: 18px;
+  margin-top: 0;
+}
+
+/* Forms */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 820px;
+}
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+}
+.form label input,
+.form label select {
+  font-weight: normal;
+}
+.form label.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-weight: normal;
+}
+.form fieldset {
+  border: 1px solid var(--rl-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.row > label {
+  flex: 1;
+  min-width: 220px;
+}
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--rl-border);
+  margin-bottom: 6px;
+}
+.tab {
+  background: none;
+  color: var(--rl-muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+.tab.active {
+  color: var(--rl-fg);
+  border-bottom-color: var(--rl-accent);
+}
+.preview {
+  border: 1px solid var(--rl-border);
+  padding: 8px 12px;
+  min-height: 200px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .release {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
