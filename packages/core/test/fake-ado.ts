@@ -28,7 +28,7 @@ export interface FakeRepo {
 export class FakeAdo {
   readonly repos = new Map<string, FakeRepo>();
   readonly pushes: Array<{ repo: string; comment: string; changes: Array<{ changeType: string; path: string; content?: string }> }> = [];
-  readonly createdTags: Array<{ name: string; commit: string }> = [];
+  readonly createdTags: Array<{ name: string; commit: string; lightweight?: boolean }> = [];
   /** Number of pushes that should fail with a stale-ref conflict before succeeding. */
   conflicts = 0;
 
@@ -89,6 +89,16 @@ export class FakeAdo {
 
     if (sub === '') {
       return json(200, { id: r.id, name: r.name, defaultBranch: r.defaultBranch, webUrl, project: { id: 'p', name: this.project } });
+    }
+    if (sub === 'refs' && method === 'POST') {
+      const value = (body as Array<{ name: string; oldObjectId: string; newObjectId: string }>).map((u) => {
+        const tag = u.name.replace(/^refs\/tags\//, '');
+        if (r.tags[tag]) return { name: u.name, success: false, updateStatus: 'rejectedDueToAlreadyExists' };
+        r.tags[tag] = u.newObjectId;
+        this.createdTags.push({ name: tag, commit: u.newObjectId, lightweight: true });
+        return { name: u.name, success: true, updateStatus: 'succeeded' };
+      });
+      return json(200, { value });
     }
     if (sub === 'refs') {
       const filter = q.get('filter') ?? '';

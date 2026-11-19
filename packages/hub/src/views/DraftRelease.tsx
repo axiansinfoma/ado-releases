@@ -195,6 +195,8 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
           prerelease: effectivePrerelease,
           notes: notes.trim() ? notes : undefined,
           createTagOnCommit: commit,
+          // the extension token has vso.code_write; annotated tags would need vso.code_manage
+          tagType: 'lightweight',
           publishedBy: env.host.user.displayName,
         }),
       );

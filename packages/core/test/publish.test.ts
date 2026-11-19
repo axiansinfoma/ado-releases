@@ -140,6 +140,23 @@ describe('publishRelease', () => {
     expect(res.record.notes).toContain('unreleased');
   });
 
+  it('creates a lightweight tag through the Refs API when asked (extension tokens lack vso.code_manage)', async () => {
+    const res = await publishRelease(client, store, {
+      project: 'Proj',
+      repository: 'Container-Images',
+      tag: 'build-tools/cert-agent/v0.15.0',
+      createTagOnCommit: 'c5',
+      tagType: 'lightweight',
+      now,
+    });
+    expect(res.tagCreated).toBe(true);
+    expect(ado.createdTags).toEqual([{ name: 'build-tools/cert-agent/v0.15.0', commit: 'c5', lightweight: true }]);
+
+    await expect(client.createLightweightTag('Proj', 'Container-Images', 'build-tools/cert-agent/v0.15.0', 'c5')).rejects.toThrow(
+      /rejectedDueToAlreadyExists/,
+    );
+  });
+
   it('uses the repository name as package for v-tags and skips pre-release tags as previous', async () => {
     ado.add({
       name: 'Orders-API',
