@@ -8,6 +8,7 @@ import {
   parseSemVer,
   proposeVersion,
   publishRelease,
+  releaseTitle,
   type PackageTag,
   type ReleaseRecord,
   type VersionRef,
@@ -40,8 +41,11 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
   const [versionTouched, setVersionTouched] = useState(false);
   const [target, setTarget] = useState(defaultBranchName(env.repo));
   const [previousTag, setPreviousTag] = useState('');
-  const [usedPrevious, setUsedPrevious] = useState<string>();
+  // the automatic previous tag (latest release before this version), independent of a manual choice
+  const [autoPrevious, setAutoPrevious] = useState<string>();
   const [title, setTitle] = useState('');
+  // title last filled by "Generate release notes"; a title the user typed is never overwritten
+  const [generatedTitle, setGeneratedTitle] = useState('');
   const [prerelease, setPrerelease] = useState<boolean>();
   const [pathFilter, setPathFilter] = useState('');
   const [notes, setNotes] = useState('');
@@ -99,7 +103,6 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
           setExistingTag('');
         }
         setPreviousTag('');
-        setUsedPrevious(undefined);
       })
       .catch((e: unknown) => !cancelled && setError(describeError(e)));
     return () => {
@@ -114,8 +117,8 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
   const effectivePrerelease = prerelease ?? (tagVersion ? isPrerelease(tagVersion) : false);
   const tagTaken = mode === 'new' && !!newTag && !!data?.tags.some((t) => t.tag === newTag);
 
-  const resolvePrevious = async (): Promise<string | undefined> => {
-    if (previousTag) return previousTag;
+  /** The automatic previous tag: the highest stable tag of the package below the version. */
+  const automaticPrevious = async (): Promise<string | undefined> => {
     if (!data) return undefined;
     if (tagVersion) {
       return withStore(env, (client) => findPreviousTag(client, env.host.project.name, env.repo, prefix, tagVersion));
@@ -123,6 +126,21 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
     // New tag without a version yet: everything since the highest stable tag.
     return data.tags.find((t) => !isPrerelease(t.version))?.tag ?? data.tags[0]?.tag;
   };
+
+  // Keep the "Automatic (…)" label current, whatever is selected manually.
+  useEffect(() => {
+    let cancelled = false;
+    setAutoPrevious(undefined);
+    automaticPrevious()
+      .then((t) => !cancelled && setAutoPrevious(t ?? ''))
+      .catch(() => !cancelled && setAutoPrevious(undefined));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, prefix, tagVersion]);
+
+  const resolvePrevious = async (): Promise<string | undefined> => previousTag || (await automaticPrevious());
 
   const generate = async () => {
     setBusy('notes');
@@ -140,9 +158,15 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
         }),
       );
       setNotes(generated.markdown);
-      setUsedPrevious(previous ?? '');
+      let releaseVersion = tagVersion;
       if (mode === 'new' && !versionTouched && data) {
-        setVersion(proposeVersion(data.tags.map((t) => t.version), generated.changeType));
+        releaseVersion = proposeVersion(data.tags.map((t) => t.version), generated.changeType);
+        setVersion(releaseVersion);
+      }
+      if (releaseVersion && (!title.trim() || title === generatedTitle)) {
+        const next = releaseTitle(prefix, releaseVersion);
+        setTitle(next);
+        setGeneratedTitle(next);
       }
     } catch (e) {
       setError(describeError(e));
@@ -262,7 +286,7 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
           <label>
             Previous tag
             <select value={previousTag} onChange={(e) => setPreviousTag(e.target.value)}>
-              <option value="">Automatic{usedPrevious !== undefined ? ` (${usedPrevious || 'none'})` : ''}</option>
+              <option value="">Automatic{autoPrevious !== undefined ? ` (${autoPrevious || 'none'})` : ''}</option>
               {data?.tags
                 .filter((t) => t.tag !== tag)
                 .map((t) => (

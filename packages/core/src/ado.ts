@@ -56,6 +56,7 @@ export interface PullRequestRef {
   status?: string;
   targetRefName?: string;
   closedDate?: string;
+  createdBy?: { displayName?: string; uniqueName?: string };
 }
 
 /** A git version: tag, branch or commit id. */

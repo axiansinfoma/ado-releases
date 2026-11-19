@@ -56,6 +56,8 @@ export interface ChangeEntry {
   /** Text of a "Release notes" section in the PR description, if any. */
   releaseNotes?: string;
   commitId?: string;
+  /** Display name of the PR's creator, or the commit author for changes without a PR. */
+  author?: string;
 }
 
 /** Item of a git push: add or edit a file with full text content. */

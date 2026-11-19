@@ -8,8 +8,15 @@ export interface FakeRepo {
   defaultBranch: string;
   tags: Record<string, string>; // tag -> commit
   /** Commits newest first with the paths they touch. */
-  commits: Array<{ commitId: string; comment: string; paths: string[] }>;
-  prs: Array<{ pullRequestId: number; title: string; description: string; lastMergeCommit: string; commits: string[] }>;
+  commits: Array<{ commitId: string; comment: string; paths: string[]; author?: string }>;
+  prs: Array<{
+    pullRequestId: number;
+    title: string;
+    description: string;
+    lastMergeCommit: string;
+    commits: string[];
+    createdBy?: { displayName: string };
+  }>;
   files: Map<string, string>;
   head: string;
   /** Branch name -> head commit; default { main: head }. */
@@ -121,7 +128,7 @@ export class FakeAdo {
         .filter((c) => ids.has(c.commitId))
         .filter((c) => !itemPath || c.paths.some((p) => p.startsWith(itemPath)))
         .slice(skip, skip + top)
-        .map((c) => ({ commitId: c.commitId, comment: c.comment }));
+        .map((c) => ({ commitId: c.commitId, comment: c.comment, author: c.author ? { name: c.author } : undefined }));
       return json(200, { count: value.length, value });
     }
     if (sub === 'pullrequestquery') {

@@ -40,17 +40,18 @@ describe('notes', () => {
   it('groups changes and links PRs', () => {
     const md = renderNotes(
       [
-        { pullRequestId: 1, title: 'feat(api): add <thing>', url: 'https://pr/1' },
-        { pullRequestId: 2, title: 'fix: crash', url: 'https://pr/2', releaseNotes: 'Restart needed.' },
-        { title: 'Update docs', commitId: '0123456789' },
+        { pullRequestId: 1, title: 'feat(api): add <thing>', url: 'https://pr/1', author: 'Jane Doe' },
+        { pullRequestId: 2, title: 'fix: crash', url: 'https://pr/2', releaseNotes: 'Restart needed.', author: 'John Roe' },
+        { title: 'Update docs', commitId: '0123456789', author: 'Jane Doe' },
         { pullRequestId: 3, title: 'feat!: remove flag' },
       ],
       'https://compare',
     );
-    expect(md).toContain('## ⚠️ Breaking changes\n\n- remove flag (!3)');
-    expect(md).toContain('## 🚀 Features\n\n- **api:** add &lt;thing&gt; ([!1](https://pr/1))');
-    expect(md).toContain('- crash ([!2](https://pr/2))\n  Restart needed.');
-    expect(md).toContain('- Update docs (01234567)');
+    // like GitHub: "… by <author> in <PR>"; without an author only "in <PR>"
+    expect(md).toContain('## ⚠️ Breaking changes\n\n- remove flag in !3');
+    expect(md).toContain('## 🚀 Features\n\n- **api:** add &lt;thing&gt; by Jane Doe in [!1](https://pr/1)');
+    expect(md).toContain('- crash by John Roe in [!2](https://pr/2)\n  Restart needed.');
+    expect(md).toContain('- Update docs by Jane Doe (01234567)');
     expect(md.indexOf('Breaking')).toBeLessThan(md.indexOf('Features'));
     expect(md).toContain('[compare](https://compare)');
   });

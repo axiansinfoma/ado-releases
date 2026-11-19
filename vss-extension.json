@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "ado-releases",
   "name": "Releases",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "AxiansInfoma",
   "description": "GitHub-style releases for Azure Repos: release notes from merged pull requests, release pages in the project wiki and a Renovate-compatible releases.json per package.",
   "public": false,
