@@ -1,0 +1,26 @@
+{
+  "name": "ado-releases",
+  "private": true,
+  "description": "GitHub-style releases for Azure DevOps repositories, stored in the project wiki, with a Renovate-compatible releases.json per package.",
+  "license": "MPL-2.0",
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/cli",
+    "packages/task"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.1"
+  }
+}

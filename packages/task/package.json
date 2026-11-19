@@ -1,0 +1,16 @@
+{
+  "name": "@ado-releases/task",
+  "version": "0.1.0",
+  "description": "Azure Pipelines task: publish a release (notes + wiki pages + releases.json).",
+  "license": "MPL-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ado-releases/core": "0.1.0"
+  }
+}
