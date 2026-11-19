@@ -302,6 +302,31 @@ export class AdoClient {
     return ref.objectId;
   }
 
+  /** Branch names (without refs/heads/) with their head commits. */
+  async listBranches(project: string, repositoryId: string): Promise<Array<{ name: string; objectId: string }>> {
+    const data = await this.json<{ value: Array<{ name: string; objectId: string }> }>(
+      'GET',
+      this.url(project, `git/repositories/${repositoryId}/refs`, { filter: 'heads/', $top: 1000 }),
+    );
+    return data.value.map((r) => ({ name: r.name.replace(/^refs\/heads\//, ''), objectId: r.objectId }));
+  }
+
+  /** Whether a file or folder exists at `path` on `branch`. */
+  async pathExists(project: string, repositoryId: string, path: string, branch: string): Promise<boolean> {
+    try {
+      await this.json('GET', this.url(project, `git/repositories/${repositoryId}/items`, {
+        scopePath: path,
+        recursionLevel: 'None',
+        'versionDescriptor.version': branch,
+        'versionDescriptor.versionType': 'branch',
+      }));
+      return true;
+    } catch (e) {
+      if (e instanceof AdoError && e.status === 404) return false;
+      throw e;
+    }
+  }
+
   /** Push one commit. Fails with AdoError (status 409 or TF401028 in body) when the branch moved. */
   async push(
     project: string,
