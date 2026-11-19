@@ -100,8 +100,10 @@ jobs:
           # 3. tfx sends it as basic auth, like a PAT.
           npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt
 
+      # Runs even when the publish step failed (e.g. the version is already on the Marketplace),
+      # so every release with a successful build carries its vsix.
       - name: Attach VSIX to the release
-        if: github.event_name == 'release'
+        if: always() && github.event_name == 'release' && steps.package.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${GITHUB_REF_NAME}" "${{ steps.package.outputs.vsix }}" --clobber
