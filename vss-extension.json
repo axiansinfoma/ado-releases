@@ -2,15 +2,26 @@
   "manifestVersion": 1,
   "id": "ado-releases",
   "name": "Releases",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publisher": "AxiansInfoma",
   "description": "GitHub-style releases for Azure Repos: release notes from merged pull requests, release pages in the project wiki and a Renovate-compatible releases.json per package.",
   "public": false,
+  "galleryFlags": ["Preview"],
   "categories": ["Azure Repos", "Azure Pipelines"],
   "icons": { "default": "images/extension-icon.png" },
   "tags": ["releases", "release notes", "changelog", "renovate", "wiki"],
   "targets": [{ "id": "Microsoft.VisualStudio.Services" }],
   "scopes": ["vso.code_write"],
+  "branding": { "color": "#0A4F9E", "theme": "dark" },
+  "repository": { "type": "git", "uri": "https://github.com/axiansinfoma/ado-releases" },
+  "links": {
+    "getstarted": { "uri": "https://github.com/axiansinfoma/ado-releases#readme" },
+    "support": { "uri": "https://github.com/axiansinfoma/ado-releases/issues" },
+    "issues": { "uri": "https://github.com/axiansinfoma/ado-releases/issues" },
+    "repository": { "uri": "https://github.com/axiansinfoma/ado-releases" },
+    "privacypolicy": { "uri": "https://github.com/axiansinfoma/ado-releases#privacy" },
+    "license": { "uri": "https://github.com/axiansinfoma/ado-releases/blob/main/LICENSE" }
+  },
   "content": {
     "details": { "path": "README.md" },
     "license": { "path": "LICENSE" }

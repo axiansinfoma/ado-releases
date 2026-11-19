@@ -37,6 +37,7 @@ It works with monorepos (one tag series per package, e.g. `tools/acme/v1.2.3`) a
 - [How it works](#how-it-works)
 - [Permissions](#permissions)
 - [Limitations](#limitations)
+- [Privacy](#privacy)
 - [Contributing](#contributing)
 
 ## What you get
@@ -173,9 +174,17 @@ Set permissions on the wiki repository under **Project settings › Repositories
 - Deleting a release keeps its Git tag; delete the tag separately if needed.
 - Renovate shows the notes of the target version only; see [Renovate](#renovate).
 
+## Privacy
+
+The extension has no backend service and collects no data. It sends no telemetry and contacts no third-party service.
+
+- The Releases page and the pipeline task call only your organization's Azure DevOps REST API, as the signed-in user or the pipeline's job identity.
+- Release data (pages, `releases.json`, `index.json`) is written to your project wiki's Git repository. Tags are written to your repositories. Nothing leaves your organization.
+- The page stores its settings in the extension data service of your organization.
+
 ## Contributing
 
-Issues and pull requests are welcome. [CONTRIBUTING.md](https://github.com/axiansinfoma/ado-releases/blob/main/CONTRIBUTING.md) explains how to build, test and release, and [AGENTS.md](https://github.com/axiansinfoma/ado-releases/blob/main/AGENTS.md) describes the structure and conventions.
+Issues and pull requests are welcome. Report security issues privately, see [SECURITY.md](https://github.com/axiansinfoma/ado-releases/blob/main/SECURITY.md). [CONTRIBUTING.md](https://github.com/axiansinfoma/ado-releases/blob/main/CONTRIBUTING.md) explains how to build, test and release, and [AGENTS.md](https://github.com/axiansinfoma/ado-releases/blob/main/AGENTS.md) describes the structure and conventions.
 
 ## License
 
