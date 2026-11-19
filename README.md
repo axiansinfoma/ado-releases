@@ -1,0 +1,99 @@
+# Releases for Azure DevOps
+
+GitHub-style releases for Azure Repos. Azure DevOps has tags but no releases. This project adds them:
+
+- **Release notes from merged pull requests.** For a new tag, it collects the pull requests merged since the previous tag of the same package and groups them by [conventional commit](https://www.conventionalcommits.org/) type: breaking changes, features, fixes, other. A `## Release notes` section in a PR description is included verbatim.
+- **Release pages in the project wiki.** One page per release, an overview per package and per repository. They are readable by people and stored outside your source repositories.
+- **A `releases.json` per package for [Renovate](https://docs.renovatebot.com/).** It uses the [custom datasource](https://docs.renovatebot.com/modules/datasource/custom/) format with `changelogContent`, so Renovate PRs for your internal packages carry release notes, as they do for packages on GitHub.
+
+Status: early development. Available now: the core library, a CLI and the pipeline task **Publish release**. A **Releases** page in Azure Repos (list, draft, generate notes, publish) is planned.
+
+## How it works
+
+```
+source repository                 project wiki repository (e.g. MyProject.wiki)
+  tag tools/acme/v1.2.3   ──────►   /Releases.md                                   index of repositories
+                                    /Releases/<repo>.md                            repository overview
+                                    /Releases/<repo>/<package>.md                  package overview, latest notes
+                                    /Releases/<repo>/<package>/1.2.3.md            one page per release
+                                    /.releases/<repo>/<package>/releases.json      for Renovate
+                                    /.releases/<repo>/<package>/index.json         all release records
+```
+
+- **Packages.** A tag `<prefix>/v<semver>` belongs to package `<prefix>`. This covers monorepos with one tag series per module, e.g. `tools/acme/v1.2.3`. A plain `v<semver>` tag belongs to a package named like the repository.
+- **Previous tag.** By default it is the highest tag of the same package below the new version. For a stable version, pre-release tags are skipped, so the notes of `1.2.0` cover everything since `1.1.0`.
+- **Writes.** Each publish is one atomic commit to the wiki repository, made through the Git Pushes API. If the branch moved meanwhile, it retries.
+- **Data folder.** Files under `/.releases/` don't show in the wiki tree, and they use plain names so other tools can build their URLs.
+
+## Pipeline task: Publish release
+
+Add it after the step that creates the tag:
+
+```yaml
+- task: PublishRelease@0
+  inputs:
+    tag: tools/acme/v$(version)
+    pathFilter: /src/tools/acme      # monorepos: only changes of this package
+    # previousTag:                   # default: detected
+    # ifExists: skip                 # skip | fail | replace (default skip, safe for re-runs)
+    # wiki: MyProject.wiki           # default: <project>.wiki
+    # dryRun: true                   # plan only, no tag, no push
+```
+
+The task uses the job access token. The build service identity (`<Project> Build Service (<org>)`) needs these permissions:
+- **Contribute** on the wiki repository: Project settings → Repositories → `<Project>.wiki`.
+- **Read** on the source repository.
+- **Create tag**, only if you use `createTagOnCommit`.
+
+Output variables: `releaseVersion`, `releaseUrl`, `wikiCommitId`. The release notes are also attached to the run summary.
+
+## CLI
+
+For local checks and for backfilling releases of existing tags:
+
+```sh
+npm ci && npm run build
+export ADO_TOKEN=...        # Entra bearer token; or ADO_PAT=... for a personal access token
+
+# print the notes a tag would get
+node packages/cli/dist/cli.js notes --org https://dev.azure.com/myorg --project Proj \
+  --repository Images --tag tools/acme/v1.2.3 --path /src/tools/acme
+
+# plan a release without writing anything
+node packages/cli/dist/cli.js publish --org https://dev.azure.com/myorg --project Proj \
+  --repository Images --tag tools/acme/v1.2.3 --path /src/tools/acme --dry-run --out ./out
+
+# publish releases for all existing tags of a package (oldest first, dated by the tagged commit)
+node packages/cli/dist/cli.js backfill --org https://dev.azure.com/myorg --project Proj \
+  --repository Images --prefix tools/acme --path /src/tools/acme
+```
+
+`--help` lists all options.
+
+## Renovate
+
+Define a custom datasource that reads the package's `releases.json` from the wiki repository, then point your dependencies at it:
+
+```json
+{
+  "customDatasources": {
+    "images": {
+      "defaultRegistryUrlTemplate": "https://dev.azure.com/myorg/Proj/_apis/git/repositories/Proj.wiki/items?path=/.releases/Images/{{packageName}}/releases.json&versionDescriptor.version=wikiMaster&$format=octetStream&api-version=7.1",
+      "format": "json"
+    }
+  },
+  "hostRules": [
+    { "matchHost": "dev.azure.com", "hostType": "custom.images", "token": "{{ secrets.ADO_TOKEN }}" }
+  ]
+}
+```
+
+Renovate's own Azure DevOps token is registered for host type `azure` and is not sent with custom datasource requests, hence the extra host rule. Renovate embeds the notes of the target version. It does not combine the notes of skipped intermediate versions; each release page links its full history.
+
+## Development
+
+See [AGENTS.md](AGENTS.md) for structure, commands and conventions.
+
+## License
+
+[MPL-2.0](LICENSE)

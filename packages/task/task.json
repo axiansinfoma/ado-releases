@@ -1,0 +1,140 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+  "id": "b0488d1d-1234-4d4c-81be-9bb65737fe39",
+  "name": "PublishRelease",
+  "friendlyName": "Publish release",
+  "description": "Generate release notes for a tag from the merged pull requests and publish the release to the project wiki (release pages and a Renovate-compatible releases.json).",
+  "helpMarkDown": "Needs the job access token with Contribute on the wiki repository and Read on the source repository. See the extension README.",
+  "category": "Utility",
+  "author": "ado-releases",
+  "version": {
+    "Major": 0,
+    "Minor": 1,
+    "Patch": 0
+  },
+  "minimumAgentVersion": "3.232.1",
+  "instanceNameFormat": "Publish release $(tag)",
+  "inputs": [
+    {
+      "name": "tag",
+      "type": "string",
+      "label": "Tag",
+      "required": true,
+      "helpMarkDown": "Tag of the release, e.g. `tools/acme/v1.2.3` or `v1.2.3`."
+    },
+    {
+      "name": "repository",
+      "type": "string",
+      "label": "Repository",
+      "defaultValue": "$(Build.Repository.Name)",
+      "required": true
+    },
+    {
+      "name": "project",
+      "type": "string",
+      "label": "Project of the repository",
+      "defaultValue": "$(System.TeamProject)",
+      "required": true
+    },
+    {
+      "name": "previousTag",
+      "type": "string",
+      "label": "Previous tag",
+      "required": false,
+      "helpMarkDown": "Default: the highest tag of the same package below the new version (pre-releases skipped for stable versions)."
+    },
+    {
+      "name": "package",
+      "type": "string",
+      "label": "Package",
+      "required": false,
+      "helpMarkDown": "Default: the tag prefix, or the repository name for `v1.2.3` tags."
+    },
+    {
+      "name": "pathFilter",
+      "type": "string",
+      "label": "Path filter",
+      "required": false,
+      "helpMarkDown": "Only changes below this path, e.g. `/src/tools/acme` in a monorepo."
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "label": "Title",
+      "required": false
+    },
+    {
+      "name": "prerelease",
+      "type": "pickList",
+      "label": "Pre-release",
+      "defaultValue": "auto",
+      "options": {
+        "auto": "When the version has a pre-release part",
+        "true": "Yes",
+        "false": "No"
+      }
+    },
+    {
+      "name": "createTagOnCommit",
+      "type": "string",
+      "label": "Create tag on commit",
+      "required": false,
+      "helpMarkDown": "Create the annotated tag on this commit when it does not exist yet, e.g. `$(Build.SourceVersion)`."
+    },
+    {
+      "name": "ifExists",
+      "type": "pickList",
+      "label": "If the release exists",
+      "defaultValue": "skip",
+      "options": {
+        "skip": "Skip (pipeline re-runs)",
+        "fail": "Fail",
+        "replace": "Replace"
+      }
+    },
+    {
+      "name": "wikiProject",
+      "type": "string",
+      "label": "Wiki project",
+      "required": false,
+      "helpMarkDown": "Default: the project of the repository."
+    },
+    {
+      "name": "wiki",
+      "type": "string",
+      "label": "Wiki repository",
+      "required": false,
+      "helpMarkDown": "Default: `<wiki project>.wiki` (the project wiki)."
+    },
+    {
+      "name": "wikiBranch",
+      "type": "string",
+      "label": "Wiki branch",
+      "required": false,
+      "helpMarkDown": "Default: the default branch of the wiki repository."
+    },
+    {
+      "name": "root",
+      "type": "string",
+      "label": "Root page",
+      "defaultValue": "Releases",
+      "required": false
+    },
+    {
+      "name": "dryRun",
+      "type": "boolean",
+      "label": "Dry run",
+      "defaultValue": "false",
+      "helpMarkDown": "Generate the notes and list the planned wiki files without creating tags or pushing."
+    }
+  ],
+  "outputVariables": [
+    { "name": "releaseVersion", "description": "Published version." },
+    { "name": "releaseUrl", "description": "Web URL of the release page." },
+    { "name": "wikiCommitId", "description": "Commit in the wiki repository." }
+  ],
+  "execution": {
+    "Node20_1": { "target": "index.js" },
+    "Node24": { "target": "index.js" }
+  }
+}
