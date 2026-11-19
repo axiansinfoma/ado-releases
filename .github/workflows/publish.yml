@@ -1,0 +1,89 @@
+name: Publish
+
+# Publishes the extension to the Visual Studio Marketplace when a GitHub release is published.
+# The release tag (vX.Y.Z) must equal the version in vss-extension.json and packages/task/task.json
+# (set both with `node scripts/version.mjs set X.Y.Z`). Pre-releases are packaged but not published.
+#
+# Secret MARKETPLACE_PAT: Azure DevOps personal access token of a member of the Marketplace
+# publisher, organization "All accessible organizations", scope "Marketplace (Publish)".
+# Sharing of a private extension with organizations is done once in the Marketplace and kept
+# across updates.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Package only, do not publish to the Marketplace"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish to Visual Studio Marketplace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # A v0.1.0 tag must never ship a 0.2.0 build, and the task version must move with the
+      # extension version, or agents keep running the previous task.
+      - name: Verify versions
+        run: node scripts/version.mjs check ${{ github.event_name == 'release' && github.ref_name || '' }}
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Package extension
+        id: package
+        run: |
+          version="$(node -p "require('./vss-extension.json').version")"
+          publisher="$(node -p "require('./vss-extension.json').publisher")"
+          vsix="${publisher}.ado-releases-${version}.vsix"
+          npx --yes tfx-cli@0.24.2 extension create --manifest-globs vss-extension.json --output-path "$vsix" --no-prompt
+          echo "vsix=$vsix" >> "$GITHUB_OUTPUT"
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: vsix
+          path: ${{ steps.package.outputs.vsix }}
+          if-no-files-found: error
+
+      - name: Publish to Marketplace
+        if: >-
+          (github.event_name == 'release' && !github.event.release.prerelease) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true')
+        env:
+          MARKETPLACE_PAT: ${{ secrets.MARKETPLACE_PAT }}
+        run: |
+          if [ -z "$MARKETPLACE_PAT" ]; then
+            echo "::error::Secret MARKETPLACE_PAT is not set."
+            exit 1
+          fi
+          npx --yes tfx-cli@0.24.2 extension publish --vsix "${{ steps.package.outputs.vsix }}" --auth-type pat --token "$MARKETPLACE_PAT" --no-prompt
+
+      - name: Attach VSIX to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" "${{ steps.package.outputs.vsix }}" --clobber

@@ -108,6 +108,24 @@ Renovate's own Azure DevOps token is registered for host type `azure` and is not
 
 See [AGENTS.md](AGENTS.md) for structure, commands and conventions.
 
+## Releasing
+
+1. Set the version and merge it to `main`. The script updates both the extension and the pipeline task, because Azure DevOps agents only download a task again when its version is higher:
+
+   ```sh
+   node scripts/version.mjs set 0.2.0
+   ```
+
+2. Publish a GitHub release with the tag `v0.2.0`. The [Publish](.github/workflows/publish.yml) workflow then:
+   - checks that the tag matches both versions;
+   - tests, builds and packages the extension;
+   - publishes it to the Visual Studio Marketplace;
+   - attaches the `.vsix` to the release.
+
+   For a pre-release, the workflow packages but doesn't publish. Run it manually to package only (`dry_run`, the default) or to publish without a release.
+
+The workflow needs the repository secret `MARKETPLACE_PAT`: an Azure DevOps personal access token of a member of the Marketplace publisher, organization "All accessible organizations", scope **Marketplace (Publish)**. While the extension is private (`"public": false` in `vss-extension.json`), share it with organizations once in the Marketplace; updates keep the sharing.
+
 ## License
 
 [MPL-2.0](LICENSE)
