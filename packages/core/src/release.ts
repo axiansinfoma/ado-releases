@@ -100,6 +100,12 @@ export interface PublishReleaseOptions {
   notes?: string;
   /** Create the annotated tag on this commit when it does not exist yet. */
   createTagOnCommit?: string;
+  /**
+   * Kind of tag created with createTagOnCommit. Default "annotated" (message = release title).
+   * "lightweight" needs only the scope vso.code_write; annotated tags need vso.code_manage, which
+   * extension tokens usually don't have.
+   */
+  tagType?: 'annotated' | 'lightweight';
   publishedBy?: string;
   /** Publication timestamp (ISO). Default: now. Backfills pass the tagged commit's date. */
   publishedAt?: string;
@@ -168,7 +174,8 @@ export async function publishRelease(
   };
 
   if (!existingTag && !opts.dryRun) {
-    await client.createAnnotatedTag(opts.project, repo.id, opts.tag, commit, record.title);
+    if (opts.tagType === 'lightweight') await client.createLightweightTag(opts.project, repo.id, opts.tag, commit);
+    else await client.createAnnotatedTag(opts.project, repo.id, opts.tag, commit, record.title);
     tagCreated = true;
   }
   const { files, commitId } = await store.publish(record, repo.webUrl, {

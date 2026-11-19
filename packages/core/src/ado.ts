@@ -191,6 +191,23 @@ export class AdoClient {
     return out;
   }
 
+  /**
+   * Create a lightweight tag (a ref pointing at the commit) through the Refs API. Unlike annotated
+   * tags (scope vso.code_manage), this needs only vso.code_write, the scope extensions usually get.
+   */
+  async createLightweightTag(project: string, repositoryId: string, name: string, commitId: string): Promise<GitTag> {
+    const res = await this.json<{ value: Array<{ success: boolean; updateStatus: string; customMessage?: string }> }>(
+      'POST',
+      this.url(project, `git/repositories/${repositoryId}/refs`),
+      [{ name: `refs/tags/${name}`, oldObjectId: '0'.repeat(40), newObjectId: commitId }],
+    );
+    const r = res.value[0];
+    if (!r?.success) {
+      throw new AdoError(`creating tag ${name} failed: ${r?.customMessage ?? r?.updateStatus ?? 'no result'}`, 409, JSON.stringify(res));
+    }
+    return { name, objectId: commitId, commitId };
+  }
+
   async createAnnotatedTag(
     project: string,
     repositoryId: string,

@@ -65,7 +65,7 @@ The extension adds **Releases** to the Repos menu. For the selected repository i
 
 - **The release list**, newest first. Each release shows **Latest** and **Pre-release** badges, the rendered notes, and links to the tag, to the changes since the previous tag and to the wiki page. In monorepos you can filter by package.
 - **Draft a new release**, as on GitHub:
-  1. Choose the package and either an existing tag without a release or a new version. A new tag is created on the chosen branch when you publish.
+  1. Choose the package and either an existing tag without a release or a new version. A new tag is created on the chosen branch when you publish, as a lightweight tag: annotated tags would need the broader scope `vso.code_manage`.
   2. Select **Generate release notes**. The previous tag is detected automatically, and you can override it. For a new tag, the next version is proposed from the pull request titles: `feat` → minor, `fix` → patch, `!` → major. The title is filled in from the last part of the package name, e.g. `acme v1.2.3`.
   3. Edit the notes with a Markdown preview, mark the release as a pre-release if needed, and publish.
 - **A page per release** that you can link to directly. You can edit its title, notes and pre-release flag, or delete it. Deleting removes the release from the wiki and keeps the Git tag.
