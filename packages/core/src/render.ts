@@ -79,7 +79,7 @@ export function renderPackagePage(repository: string, pkg: string, records: Rele
   if (latest) {
     parts.push(
       `## Latest: [${latest.version}](${ctx.releasePageUrl(latest)})${latest.prerelease ? ' `Pre-release`' : ''}\n\n` +
-        `Published ${date(latest.publishedAt)} · ${tagLink(ctx, latest.tag)}\n\n` +
+        `Released ${date(releaseDate(latest))} · ${tagLink(ctx, latest.tag)}\n\n` +
         latest.notes.trim().replace(/^(#{1,5}) /gm, '#$1 '),
     );
   }

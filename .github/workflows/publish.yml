@@ -1,8 +1,11 @@
 name: Publish
 
-# Publishes the extension to the Visual Studio Marketplace when a GitHub release is published.
-# The release tag (vX.Y.Z) must equal the version in vss-extension.json and packages/task/task.json
-# (set both with `node scripts/version.mjs set X.Y.Z`). Pre-releases are packaged but not published.
+# Publishes the extension to the Visual Studio Marketplace. Two channels:
+# - production "ado-releases": a published GitHub release vX.Y.Z. The tag must equal the version in
+#   vss-extension.json and packages/task/task.json (set both with `node scripts/version.mjs set X.Y.Z`).
+# - dev "ado-releases-dev" (private, own task id, see scripts/dev-manifest.mjs): every push to main and
+#   every GitHub pre-release, version 0.0.<run number>. Shared with the organizations in the repository
+#   variable DEV_SHARE_WITH (space-separated, optional).
 #
 # Authentication without stored secrets: Marketplace trusted publishing. GitHub issues an OIDC
 # token for the audience marketplace.visualstudio.com, the Marketplace exchanges it for a
@@ -15,12 +18,23 @@ name: Publish
 on:
   release:
     types: [published]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
+      channel:
+        description: "Extension to build: production (ado-releases) or dev (ado-releases-dev)"
+        type: choice
+        options: [dev, production]
+        default: dev
       dry_run:
         description: "Package only, do not publish to the Marketplace"
         type: boolean
         default: true
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -38,16 +52,31 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Choose channel
+        id: channel
+        env:
+          EVENT: ${{ github.event_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          INPUT_CHANNEL: ${{ inputs.channel }}
+        run: |
+          case "$EVENT" in
+            release) if [ "$PRERELEASE" = true ]; then channel=dev; else channel=production; fi ;;
+            push) channel=dev ;;
+            *) channel="$INPUT_CHANNEL" ;;
+          esac
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "Channel: $channel"
+
       # A v0.1.0 tag must never ship a 0.2.0 build, and the task version must move with the
       # extension version, or agents keep running the previous task.
       - name: Verify versions
-        run: node scripts/version.mjs check ${{ github.event_name == 'release' && github.ref_name || '' }}
+        run: node scripts/version.mjs check ${{ github.event_name == 'release' && steps.channel.outputs.channel == 'production' && github.ref_name || '' }}
 
       - name: Typecheck
         run: npm run typecheck
@@ -60,12 +89,21 @@ jobs:
 
       - name: Package extension
         id: package
+        env:
+          CHANNEL: ${{ steps.channel.outputs.channel }}
         run: |
-          version="$(node -p "require('./vss-extension.json').version")"
-          publisher="$(node -p "require('./vss-extension.json').publisher")"
-          vsix="${publisher}.ado-releases-${version}.vsix"
-          npx --yes tfx-cli@0.24.2 extension create --manifest-globs vss-extension.json --output-path "$vsix" --no-prompt
-          echo "vsix=$vsix" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          manifest=vss-extension.json
+          if [ "$CHANNEL" = dev ]; then
+            node scripts/dev-manifest.mjs "0.0.${GITHUB_RUN_NUMBER}" "${GITHUB_SHA::7}"
+            manifest=vss-extension.dev.json
+          fi
+          version="$(node -p "require('./$manifest').version")"
+          publisher="$(node -p "require('./$manifest').publisher")"
+          id="$(node -p "require('./$manifest').id")"
+          vsix="${publisher}.${id}-${version}.vsix"
+          npx --yes tfx-cli@0.24.2 extension create --manifest-globs "$manifest" --output-path "$vsix" --no-prompt
+          { echo "vsix=$vsix"; echo "id=$id"; echo "version=$version"; echo "publisher=$publisher"; } >> "$GITHUB_OUTPUT"
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v7
@@ -76,13 +114,17 @@ jobs:
 
       - name: Publish to Marketplace
         if: >-
-          (github.event_name == 'release' && !github.event.release.prerelease) ||
+          github.event_name == 'release' || github.event_name == 'push' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true')
         env:
           VSIX: ${{ steps.package.outputs.vsix }}
+          publisher: ${{ steps.package.outputs.publisher }}
+          id: ${{ steps.package.outputs.id }}
+          version: ${{ steps.package.outputs.version }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+          DEV_SHARE_WITH: ${{ vars.DEV_SHARE_WITH }}
         run: |
           set -euo pipefail
-          publisher="$(node -p "require('./vss-extension.json').publisher")"
           # 1. GitHub OIDC token for the Marketplace audience (needs id-token: write).
           oidc="$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=marketplace.visualstudio.com" | jq -r .value)"
@@ -99,11 +141,15 @@ jobs:
           echo "::add-mask::$credential"
           # 3. tfx sends it as basic auth, like a PAT. Upload without tfx's own validation wait: it
           #    gives up after about 4 minutes, while the Marketplace validation can take longer.
-          npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt --no-wait-validation
+          #    The dev extension is private; sharing is kept across updates, so sharing on every publish is harmless.
+          share=()
+          if [ "$CHANNEL" = dev ] && [ -n "${DEV_SHARE_WITH:-}" ]; then
+            # shellcheck disable=SC2206 # space-separated list of organizations
+            share=(--share-with $DEV_SHARE_WITH)
+          fi
+          npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt --no-wait-validation "${share[@]}"
           # 4. Wait for the validation while the credential is still valid (15 minutes). Fail on a
           #    validation error; if it is still pending, warn: the Marketplace finishes it on its own.
-          version="$(node -p "require('./vss-extension.json').version")"
-          id="$(node -p "require('./vss-extension.json').id")"
           status=pending
           for _ in $(seq 1 24); do
             sleep 30

@@ -50,7 +50,7 @@ describe('notes', () => {
     // like GitHub: "… by <author> in <PR>"; without an author only "in <PR>"
     expect(md).toContain('## ⚠️ Breaking changes\n\n- remove flag in !3');
     expect(md).toContain('## 🚀 Features\n\n- **api:** add &lt;thing&gt; by Jane Doe in [!1](https://pr/1)');
-    expect(md).toContain('- crash by John Roe in [!2](https://pr/2)\n  Restart needed.');
+    expect(md).toContain('- crash by John Roe in [!2](https://pr/2)\n\n  Restart needed.');
     expect(md).toContain('- Update docs by Jane Doe (01234567)');
     expect(md.indexOf('Breaking')).toBeLessThan(md.indexOf('Features'));
     expect(md).toContain('[compare](https://compare)');
@@ -85,6 +85,12 @@ describe('pages', () => {
     expect(page).toContain('### 🐛 Fixes');
     const rows = page.split('\n').filter((l) => l.startsWith('| ['));
     expect(rows.map((l) => /\[(.*?)\]/.exec(l)![1])).toEqual(['1.1.0-rc.1', '1.0.0', '0.9.0']);
+  });
+
+  it('dates the latest release on the package overview by its tag', () => {
+    const r = rec('1.0.0', { publishedAt: '2026-11-20T07:00:00Z', releasedAt: '2026-11-19T17:11:20Z' });
+    const page = renderPackagePage('Repo', 'tools/acme', [r], ctx);
+    expect(page).toContain('Released 2026-11-19 · ');
   });
 
   it('renders the Renovate custom datasource format', () => {
