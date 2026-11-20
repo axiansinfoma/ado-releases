@@ -37,6 +37,8 @@ node scripts/version.mjs set X.Y.Z   # extension + task version together; `check
 
 Releases (steps and one-time setup in `CONTRIBUTING.md`): publishing a GitHub release `vX.Y.Z` runs `.github/workflows/publish.yml` (Marketplace trusted publishing: GitHub OIDC token exchanged for a short-lived publisher credential, passed to `tfx` as a PAT; environment `marketplace`, no stored secret). Never change only one of the two versions: agents only fetch a task whose version increased.
 
+**Before a release is created** (when asked to prepare, propose or cut a release, or to merge the last PR before one): make sure `main` already carries the release version. `node scripts/version.mjs check vX.Y.Z` must pass on `main`; if it does not, open a `chore: release X.Y.Z` PR with `node scripts/version.mjs set X.Y.Z` first, or include the bump in the PR that is merged last. `publish.yml` refuses a tag that differs from the versions, and the tag of a failed release must be deleted and created again on the bumped commit.
+
 In memory-limited dev containers, wrap these in `memguard --` where available.
 
 ## Conventions and pitfalls
