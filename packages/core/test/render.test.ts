@@ -37,6 +37,16 @@ describe('notes', () => {
     expect(extractReleaseNotesSection('## Summary\nx')).toBeUndefined();
   });
 
+  it('keeps headings inside <details> blocks (Renovate) and closes blocks cut off by ADO', () => {
+    const renovate =
+      '### Release Notes\n\n<details>\n<summary>k8s.io/api</summary>\n\n### [`v0.37.2`](https://x)\n\nfixes\n\n</details>\n\n---\n\n### Configuration\n\nauto';
+    expect(extractReleaseNotesSection(renovate)).toBe(
+      '<details>\n<summary>k8s.io/api</summary>\n\n### [`v0.37.2`](https://x)\n\nfixes\n\n</details>',
+    );
+    const cut = '### Release Notes\n\n<details>\n<summary>k8s.io/api</summary>\n\n### [`v0.37.2`](https://x)\n\nfix';
+    expect(extractReleaseNotesSection(cut)).toBe('<details>\n<summary>k8s.io/api</summary>\n\n### [`v0.37.2`](https://x)\n\nfix\n\n</details>');
+  });
+
   it('groups changes and links PRs', () => {
     const md = renderNotes(
       [
