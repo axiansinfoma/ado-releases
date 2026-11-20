@@ -8,6 +8,12 @@
   "public": false,
   "categories": ["Azure Repos", "Azure Pipelines"],
   "icons": { "default": "images/extension-icon.png" },
+  "screenshots": [
+    { "path": "images/screenshots/releases-list.png" },
+    { "path": "images/screenshots/draft-release.png" },
+    { "path": "images/screenshots/wiki-package-page.png" },
+    { "path": "images/screenshots/pipeline-task.png" }
+  ],
   "tags": ["releases", "release notes", "changelog", "renovate", "wiki"],
   "targets": [{ "id": "Microsoft.VisualStudio.Services" }],
   "scopes": ["vso.code_write"],

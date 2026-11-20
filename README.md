@@ -24,6 +24,8 @@ Azure DevOps has tags, but no releases. This extension adds them:
 
 It works with monorepos (one tag series per package, e.g. `tools/acme/v1.2.3`) and needs no backend service: everything is stored in the project wiki's Git repository.
 
+![The Releases page in Azure Repos: releases of two packages with generated notes](https://raw.githubusercontent.com/axiansinfoma/ado-releases/main/images/screenshots/releases-list.png)
+
 > **Status:** early development, in production use by the authors. Expect changes until 1.0.
 
 ## Contents
@@ -68,6 +70,9 @@ The extension adds **Releases** to the Repos menu. For the selected repository i
   1. Choose the package and either an existing tag without a release or a new version. A new tag is created on the chosen branch when you publish, as a lightweight tag: annotated tags would need the broader scope `vso.code_manage`.
   2. Select **Generate release notes**. The previous tag is detected automatically, and you can override it. For a new tag, the next version is proposed from the pull request titles: `feat` → minor, `fix` → patch, `!` → major. The title is filled in from the last part of the package name, e.g. `acme v1.2.3`.
   3. Edit the notes with a Markdown preview, mark the release as a pre-release if needed, and publish.
+
+  ![Draft a new release: version 1.2.0 proposed from the pull requests, notes generated](https://raw.githubusercontent.com/axiansinfoma/ado-releases/main/images/screenshots/draft-release.png)
+
 - **A page per release** that you can link to directly. You can edit its title, notes and pre-release flag, or delete it. Deleting removes the release from the wiki and keeps the Git tag.
 - **Settings** per project: wiki project, wiki repository, branch and root page. The defaults are the project wiki, its default branch and the root page `Releases`. The project wiki is found automatically, also after a project rename.
 
@@ -89,6 +94,8 @@ Add the task after the step that creates the tag:
 ```
 
 The task runs with the job access token. It sets the output variables `releaseVersion`, `releaseUrl` and `wikiCommitId`, and attaches the release notes to the run summary.
+
+![The Publish release task in the pipeline editor's task assistant](https://raw.githubusercontent.com/axiansinfoma/ado-releases/main/images/screenshots/pipeline-task.png)
 
 ## Renovate
 
@@ -147,6 +154,8 @@ source repository                project wiki repository (e.g. MyProject.wiki)
                                    /.releases/<repo>/<package>/releases.json     for Renovate
                                    /.releases/<repo>/<package>/index.json        all release records
 ```
+
+![A package page in the project wiki: latest notes and all releases](https://raw.githubusercontent.com/axiansinfoma/ado-releases/main/images/screenshots/wiki-package-page.png)
 
 - **Packages.** A tag `<prefix>/v<semver>` belongs to the package `<prefix>`. A plain `v<semver>` tag belongs to a package named after the repository.
 - **Previous tag.** By default, the previous tag is the highest tag of the same package below the new version. For a stable version, pre-release tags are skipped, so the notes of `1.2.0` cover everything since `1.1.0`.
