@@ -26,7 +26,7 @@ It works with monorepos (one tag series per package, e.g. `tools/acme/v1.2.3`) a
 
 ![The Releases page in Azure Repos: releases of two packages with generated notes](https://raw.githubusercontent.com/axiansinfoma/ado-releases/main/images/screenshots/releases-list.png)
 
-> **Status:** early development, in production use by the authors. Expect changes until 1.0.
+Install it from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=AxiansInfoma.ado-releases).
 
 ## Contents
 
@@ -47,18 +47,14 @@ It works with monorepos (one tag series per package, e.g. `tools/acme/v1.2.3`) a
 | Component | Use it to |
 |---|---|
 | **Releases** page in Azure Repos | browse releases, draft a release with generated notes and a new tag, edit or delete a release |
-| Pipeline task **Publish release** (`PublishRelease@0`) | publish a release automatically after your pipeline creates a tag |
+| Pipeline task **Publish release** (`PublishRelease@1`) | publish a release automatically after your pipeline creates a tag |
 | CLI | preview notes locally and backfill releases for existing tags |
 
 All three share one core library and write the same data, so you can mix them.
 
 ## Installation
 
-The extension targets Azure DevOps Services. It isn't listed publicly on the Visual Studio Marketplace yet. Until it is, publish it under your own Marketplace publisher:
-
-1. Clone the repository and set `publisher` in `vss-extension.json` to your publisher ID.
-2. Build and package it, see [CONTRIBUTING.md](https://github.com/axiansinfoma/ado-releases/blob/main/CONTRIBUTING.md), and upload the `.vsix` in the Marketplace under **Manage publisher**.
-3. Share the extension with your organization, then install it from **Organization settings › Extensions › Shared**.
+The extension targets Azure DevOps Services. An organization administrator installs it from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=AxiansInfoma.ado-releases) with **Get it free**, or requests it there for approval.
 
 When installing, an organization administrator approves the extension's scope **Code (read and write)**. The Releases page uses it to read repositories, create tags and write to the wiki.
 
@@ -84,7 +80,7 @@ The page acts as the signed-in user; see [Permissions](#permissions).
 Add the task after the step that creates the tag:
 
 ```yaml
-- task: PublishRelease@0
+- task: PublishRelease@1
   inputs:
     tag: tools/acme/v$(version)
     pathFilter: /src/tools/acme      # monorepos: only changes below this path

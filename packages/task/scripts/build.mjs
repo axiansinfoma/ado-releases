@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 /**
- * build.mjs - bundle the "Publish release" task into dist/PublishReleaseV0.
+ * build.mjs - bundle the "Publish release" task into dist/PublishReleaseV1.
  *
  * Usage: node scripts/build.mjs [-h|--help]
  *
- * Writes dist/PublishReleaseV0/{index.js,task.json,package.json}. The bundle is CommonJS
+ * Writes dist/PublishReleaseV1/{index.js,task.json,package.json}. The bundle is CommonJS
  * (agents run "node index.js"); the extra package.json keeps Node from treating it as ESM.
  */
 import { build } from 'esbuild';
 import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
 
 if (process.argv.includes('-h') || process.argv.includes('--help')) {
-  console.log('Usage: node scripts/build.mjs\nBundle the task into dist/PublishReleaseV0.');
+  console.log('Usage: node scripts/build.mjs\nBundle the task into dist/PublishReleaseV1.');
   process.exit(0);
 }
 
-const out = 'dist/PublishReleaseV0';
+const out = 'dist/PublishReleaseV1';
 mkdirSync(out, { recursive: true });
 await build({
   entryPoints: ['src/index.ts'],

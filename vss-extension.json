@@ -2,11 +2,10 @@
   "manifestVersion": 1,
   "id": "ado-releases",
   "name": "Releases",
-  "version": "0.2.6",
+  "version": "1.0.0",
   "publisher": "AxiansInfoma",
   "description": "GitHub-style releases for Azure Repos: release notes from merged pull requests, release pages in the project wiki and a Renovate-compatible releases.json per package.",
-  "public": false,
-  "galleryFlags": ["Preview"],
+  "public": true,
   "categories": ["Azure Repos", "Azure Pipelines"],
   "icons": { "default": "images/extension-icon.png" },
   "screenshots": [
@@ -33,7 +32,7 @@
     "license": { "path": "LICENSE" }
   },
   "files": [
-    { "path": "packages/task/dist/PublishReleaseV0" },
+    { "path": "packages/task/dist/PublishReleaseV1" },
     { "path": "packages/hub/dist", "addressable": true, "packagePath": "hub" }
   ],
   "contributions": [
@@ -41,7 +40,7 @@
       "id": "publish-release-task",
       "type": "ms.vss-distributed-task.task",
       "targets": ["ms.vss-distributed-task.tasks"],
-      "properties": { "name": "packages/task/dist/PublishReleaseV0" }
+      "properties": { "name": "packages/task/dist/PublishReleaseV1" }
     },
     {
       "id": "releases-hub",
