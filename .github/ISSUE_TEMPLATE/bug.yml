@@ -1,0 +1,35 @@
+name: Bug report
+description: Something doesn't work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting. Please remove organization, project and repository names you don't want to share. Security issues go to [private reporting](https://github.com/axiansinfoma/ado-releases/security/advisories/new), not here.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [Releases page, Pipeline task (PublishRelease@0), CLI, Renovate integration, Other]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Organization settings › Extensions › Releases, or the CLI's package version.
+      placeholder: 0.2.5
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Errors or logs
+      description: Error message on the page, browser console output, or the task log. Remove tokens and internal names.
+      render: text
