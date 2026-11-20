@@ -39,6 +39,8 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
   const [existingTag, setExistingTag] = useState('');
   const [version, setVersion] = useState('');
   const [versionTouched, setVersionTouched] = useState(false);
+  // version proposed from the changes by the last "Generate release notes"
+  const [proposed, setProposed] = useState<string>();
   const [target, setTarget] = useState(defaultBranchName(env.repo));
   const [previousTag, setPreviousTag] = useState('');
   // the automatic previous tag (latest release before this version), independent of a manual choice
@@ -103,6 +105,7 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
           setExistingTag('');
         }
         setPreviousTag('');
+        setProposed(undefined);
       })
       .catch((e: unknown) => !cancelled && setError(describeError(e)));
     return () => {
@@ -159,9 +162,14 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
       );
       setNotes(generated.markdown);
       let releaseVersion = tagVersion;
-      if (mode === 'new' && !versionTouched && data) {
-        releaseVersion = proposeVersion(data.tags.map((t) => t.version), generated.changeType);
-        setVersion(releaseVersion);
+      if (mode === 'new' && data) {
+        const next = proposeVersion(data.tags.map((t) => t.version), generated.changeType);
+        setProposed(next);
+        // a version the user typed (or the browser filled in) is kept; the proposal is shown next to it
+        if (!versionTouched) {
+          releaseVersion = next;
+          setVersion(next);
+        }
       }
       if (releaseVersion && (!title.trim() || title === generatedTitle)) {
         const next = releaseTitle(prefix, releaseVersion);
@@ -261,6 +269,7 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
                 <input
                   value={version}
                   placeholder="1.2.3"
+                  autoComplete="off"
                   onChange={(e) => {
                     setVersion(e.target.value.trim().replace(/^v/, ''));
                     setVersionTouched(true);
@@ -269,6 +278,25 @@ export function DraftRelease({ env, initialPackage, initialTag }: { env: Env; in
                 {version && !parseSemVer(version) && <span className="field-error">Not a semantic version.</span>}
                 {tagTaken && <span className="field-error">Tag {newTag} already exists.</span>}
                 {newTag && !tagTaken && <span className="muted">Tag: {newTag}</span>}
+                {proposed && proposed !== version && (
+                  <span className="muted">
+                    Suggested from the changes: {proposed}{' '}
+                    <button
+                      className="link"
+                      onClick={() => {
+                        setVersion(proposed);
+                        setVersionTouched(false);
+                        if (!title.trim() || title === generatedTitle) {
+                          const next = releaseTitle(prefix, proposed);
+                          setTitle(next);
+                          setGeneratedTitle(next);
+                        }
+                      }}
+                    >
+                      Use
+                    </button>
+                  </span>
+                )}
               </label>
               <label>
                 Target
