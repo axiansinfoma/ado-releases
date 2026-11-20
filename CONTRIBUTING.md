@@ -28,7 +28,7 @@ Every push to `main` (and every GitHub pre-release) publishes the private extens
 - the Releases page appears as **Releases (dev)**;
 - version `0.0.<workflow run number>`, which only grows.
 
-It is shared with the organizations in the repository variable `DEV_SHARE_WITH` (space-separated). Install it there once from **Organization settings › Extensions › Shared**; updates install automatically. Without the variable, share it once by hand under **Manage publisher**.
+Share it once by hand under **Manage publisher** (the trusted publishing credential can upload and update extensions, but not share them), then install it from **Organization settings › Extensions › Shared**. Sharing and installation are kept across updates, which install automatically.
 
 To try a change from a fork, publish the `.vsix` under your own Marketplace publisher (set `publisher` in `vss-extension.json`).
 

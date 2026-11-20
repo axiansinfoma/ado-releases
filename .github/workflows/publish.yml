@@ -4,8 +4,8 @@ name: Publish
 # - production "ado-releases": a published GitHub release vX.Y.Z. The tag must equal the version in
 #   vss-extension.json and packages/task/task.json (set both with `node scripts/version.mjs set X.Y.Z`).
 # - dev "ado-releases-dev" (private, own task id, see scripts/dev-manifest.mjs): every push to main and
-#   every GitHub pre-release, version 0.0.<run number>. Shared with the organizations in the repository
-#   variable DEV_SHARE_WITH (space-separated, optional).
+#   every GitHub pre-release, version 0.0.<run number>. Share it with organizations once by hand under
+#   Manage publisher: trusted publishing credentials can only upload and update (sharing returns 403).
 #
 # Authentication without stored secrets: Marketplace trusted publishing. GitHub issues an OIDC
 # token for the audience marketplace.visualstudio.com, the Marketplace exchanges it for a
@@ -122,7 +122,6 @@ jobs:
           id: ${{ steps.package.outputs.id }}
           version: ${{ steps.package.outputs.version }}
           CHANNEL: ${{ steps.channel.outputs.channel }}
-          DEV_SHARE_WITH: ${{ vars.DEV_SHARE_WITH }}
         run: |
           set -euo pipefail
           # 1. GitHub OIDC token for the Marketplace audience (needs id-token: write).
@@ -141,13 +140,9 @@ jobs:
           echo "::add-mask::$credential"
           # 3. tfx sends it as basic auth, like a PAT. Upload without tfx's own validation wait: it
           #    gives up after about 4 minutes, while the Marketplace validation can take longer.
-          #    The dev extension is private; sharing is kept across updates, so sharing on every publish is harmless.
-          share=()
-          if [ "$CHANNEL" = dev ] && [ -n "${DEV_SHARE_WITH:-}" ]; then
-            # shellcheck disable=SC2206 # space-separated list of organizations
-            share=(--share-with $DEV_SHARE_WITH)
-          fi
-          npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt --no-wait-validation "${share[@]}"
+          #    No --share-with: trusted publishing credentials "only support extension upload and update"
+          #    (403); a private extension is shared once by hand and keeps the sharing across updates.
+          npx --yes tfx-cli@0.24.2 extension publish --vsix "$VSIX" --auth-type pat --token "$credential" --no-prompt --no-wait-validation
           # 4. Wait for the validation while the credential is still valid (15 minutes). Fail on a
           #    validation error; if it is still pending, warn: the Marketplace finishes it on its own.
           status=pending
