@@ -93,7 +93,10 @@ function prFromMergeComment(comment: string): { pullRequestId: number; title: st
 
 /**
  * Text below a "Release notes" heading (any level) in a PR description, up to the next
- * heading of the same or a higher level. Undefined when there is none or it is empty.
+ * heading of the same or a higher level outside an HTML `<details>` block. Renovate puts the
+ * upstream changelogs, headings included, in `<details>` blocks below its "Release Notes"
+ * heading. Blocks left open (ADO cuts descriptions at 4000 characters) are closed, so they
+ * cannot swallow the rest of the page. Undefined when there is none or it is empty.
  */
 export function extractReleaseNotesSection(description: string): string | undefined {
   const lines = description.replace(/\r\n/g, '\n').split('\n');
@@ -101,12 +104,16 @@ export function extractReleaseNotesSection(description: string): string | undefi
   if (start < 0) return undefined;
   const level = /^#+/.exec(lines[start]!.trim())![0].length;
   const body: string[] = [];
+  let open = 0;
   for (const line of lines.slice(start + 1)) {
     const h = /^(#{1,6})\s/.exec(line.trim());
-    if (h && h[1]!.length <= level) break;
+    if (h && h[1]!.length <= level && open === 0) break;
     body.push(line);
+    open = Math.max(0, open + (line.match(/<details[\s>]/gi)?.length ?? 0) - (line.match(/<\/details\s*>/gi)?.length ?? 0));
   }
-  const text = body.join('\n').trim();
+  // Renovate ends the section with a thematic break before its next heading
+  let text = body.join('\n').trim().replace(/(\n\s*([-*_])(\s*\2){2,}\s*)+$/, '').trim();
+  if (open > 0) text += '\n\n' + Array(open).fill('</details>').join('\n');
   return text || undefined;
 }
 
