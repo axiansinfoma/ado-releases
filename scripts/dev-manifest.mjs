@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const OUT = 'package-dev';
 const DEV_MANIFEST = 'vss-extension.dev.json';
-const TASK_SRC = 'packages/task/dist/PublishReleaseV0';
+const TASK_SRC = 'packages/task/dist/PublishReleaseV1';
 const TASK_DEV = `${OUT}/PublishReleaseDevV0`;
 /** Fixed task id of the dev task; must differ from the public task's id in packages/task/task.json. */
 const DEV_TASK_ID = '65ecdd53-666c-4520-8ede-9e4320eb03e8';

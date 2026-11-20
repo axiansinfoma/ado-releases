@@ -58,7 +58,7 @@ export function SettingsView({ env }: { env: Env }) {
       <h1>Settings</h1>
       <p className="muted">
         Where releases of this project are stored. Empty fields use the defaults. Pipelines using the{' '}
-        <code>PublishRelease@0</code> task need the same values as task inputs.
+        <code>PublishRelease@1</code> task need the same values as task inputs.
       </p>
       {!settings ? (
         error ? <div className="error">{error}</div> : <div className="muted">Loading…</div>

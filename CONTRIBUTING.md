@@ -59,4 +59,4 @@ Publishing uses no stored secret. It uses the Marketplace's [trusted publishing]
    - environment: `marketplace`
 2. Create the GitHub environment `marketplace`. Optionally restrict it to tags and require reviewers.
 
-While the extension is private (`"public": false` in `vss-extension.json`), share it with organizations once in the Marketplace; updates keep the sharing.
+The extension is public (`"public": true` in `vss-extension.json`); a Marketplace listing can't be made private again, only unpublished. The dev extension stays private and is shared by hand, see [Dev extension](#dev-extension).

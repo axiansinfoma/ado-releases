@@ -9,7 +9,7 @@ body:
     id: component
     attributes:
       label: Component
-      options: [Releases page, Pipeline task (PublishRelease@0), CLI, Renovate integration, Other]
+      options: [Releases page, Pipeline task (PublishRelease@1), CLI, Renovate integration, Other]
     validations:
       required: true
   - type: input

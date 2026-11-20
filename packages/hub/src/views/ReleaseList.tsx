@@ -78,7 +78,7 @@ export function ReleaseList({ env, packageFilter }: { env: Env; packageFilter?: 
             Releases are stored in the wiki <b>{env.wiki.repository}</b> under <b>{env.wiki.root}</b>, together with a{' '}
             <code>releases.json</code> per package that Renovate can read.
           </p>
-          <p>Create one here, or let a pipeline publish them with the <code>PublishRelease@0</code> task.</p>
+          <p>Create one here, or let a pipeline publish them with the <code>PublishRelease@1</code> task.</p>
         </div>
       ) : (
         releases.map((r) => (

@@ -16,12 +16,12 @@ npm workspaces, TypeScript (ESM, `nodenext`), Node >= 20.
 | `packages/core/src/release.ts` | `publishRelease`: tag → previous tag → notes → record → store. `findPreviousTag`, `listPackageTags`, `listTagPrefixes`, `proposeVersion`. |
 | `packages/core/src/wikiname.ts` | Wiki page title ↔ git file name encoding (space → `-`, `-` → `%2D`, …). |
 | `packages/cli` | CLI (`notes`, `publish`, `backfill`), bundled with esbuild to `dist/cli.js`. |
-| `packages/task` | Azure Pipelines task `PublishRelease@0`. It reads `INPUT_*` and `ENDPOINT_AUTH_SYSTEMVSSCONNECTION` directly; there is no `azure-pipelines-task-lib` at runtime. Bundled as CommonJS to `dist/PublishReleaseV0` by `scripts/build.mjs`. |
+| `packages/task` | Azure Pipelines task `PublishRelease@1`. It reads `INPUT_*` and `ENDPOINT_AUTH_SYSTEMVSSCONNECTION` directly; there is no `azure-pipelines-task-lib` at runtime. Bundled as CommonJS to `dist/PublishReleaseV1` by `scripts/build.mjs`. |
 | `packages/hub` | The "Releases" repo hub: React 19, `azure-devops-extension-sdk` 5 (host services declared locally in `src/sdk.ts`), `marked` + `DOMPurify`. Views in `src/views`, UI-independent logic in `src/model.ts` and `src/settings.ts`. Bundled as one IIFE to `dist/releases.{html,js,css}` by `scripts/build.mjs`; packaged as `hub/` in the vsix. |
 | `images/` | `icon.svg` is the source of the icons. `extension-icon.png` (128 px, Marketplace and extension list) and `packages/task/icon.png` (32 px, task assistant) are rendered from it, e.g. with `@resvg/resvg-js`. Re-render both when the SVG changes. `screenshots/` holds the Marketplace screenshots (manifest `screenshots`, also shown in the README via absolute raw URLs), taken in a demo project; retake them when the UI they show changes. |
 | `scripts/dev-manifest.mjs` | Derives the private dev extension `ado-releases-dev` (own task id/name, "Releases (dev)" hub, version `0.0.<run>`) into the gitignored `vss-extension.dev.json` + `package-dev/`. Published by `publish.yml` on every push to `main`. |
 | `SECURITY.md`, `.github/ISSUE_TEMPLATE/` | Private vulnerability reporting; bug and feature forms. |
-| `vss-extension.json` | Extension manifest (`tfx`). The task contribution's `name` is its on-disk path. The hub contribution's `uri` is relative to the vsix (`hub/releases.html`). Keep `version` equal to the task version in `packages/task/task.json`. `galleryFlags: ["Preview"]` while below 1.0; `links`/`repository`/`branding` shape the Marketplace listing. |
+| `vss-extension.json` | Extension manifest (`tfx`). The task contribution's `name` is its on-disk path. The hub contribution's `uri` is relative to the vsix (`hub/releases.html`). Keep `version` equal to the task version in `packages/task/task.json`. `public: true` since 1.0.0 (the dev manifest overrides it to private); `links`/`repository`/`branding` shape the Marketplace listing. |
 
 ## Commands
 
