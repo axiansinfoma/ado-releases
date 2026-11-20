@@ -38,13 +38,15 @@ describe('routes', () => {
       { view: 'list' },
       { view: 'list', package: 'tools/a' },
       { view: 'new', package: 'tools/a', tag: 'tools/a/v1.0.0' },
+      { view: 'new' },
+      { view: 'new', package: 'tools/a' },
       { view: 'release', package: 'tools/a', version: '1.0.10' },
       { view: 'edit', package: 'Mono-Repo', version: '2.0.0' },
       { view: 'settings' },
     ];
     for (const r of routes) {
-      const q = Object.fromEntries(Object.entries(routeParams(r)).filter(([, v]) => v !== ''));
-      expect(parseRoute(q)).toEqual(r);
+      // the host returns every parameter routeParams set, empty ones included (e.g. after a reload)
+      expect(parseRoute(routeParams(r))).toEqual(r);
     }
   });
 

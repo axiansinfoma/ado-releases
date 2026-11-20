@@ -10,10 +10,13 @@ export type Route =
 
 /** Route from the host page's query parameters (deep links). */
 export function parseRoute(q: Record<string, string | undefined>): Route {
-  const pkg = q.package;
+  // routeParams sets every key, so an empty value means "not set": after a reload, package=""
+  // must not select the repository's own package (plain v-tags), whose name is the repository's
+  const pkg = q.package || undefined;
+  const tag = q.tag || undefined;
   switch (q.view) {
     case 'new':
-      return { view: 'new', package: pkg, tag: q.tag };
+      return { view: 'new', package: pkg, tag };
     case 'release':
     case 'edit':
       if (pkg !== undefined && q.version) return { view: q.view, package: pkg, version: q.version };
