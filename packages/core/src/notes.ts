@@ -135,7 +135,9 @@ export function renderNotes(changes: ChangeEntry[], compareLink?: string): strin
           : by;
     let entry = `- ${scope}${escapeInline(t.type === 'other' ? cleanTitle(change.title) : t.description)}${ref}`;
     if (change.releaseNotes) {
-      entry += '\n' + change.releaseNotes.split('\n').map((l) => (l ? `  ${l}` : '')).join('\n');
+      // a paragraph of its own in the list item; a plain line break would join it to the
+      // entry line in CommonMark renderers (the Releases page, GitHub)
+      entry += '\n\n' + change.releaseNotes.split('\n').map((l) => (l ? `  ${l}` : '')).join('\n');
     }
     const key = sectionOf(t);
     groups.set(key, [...(groups.get(key) ?? []), entry]);
