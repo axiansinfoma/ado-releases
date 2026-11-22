@@ -13,7 +13,7 @@
   "dependencies": {
     "@ado-releases/core": "0.1.0",
     "azure-devops-extension-sdk": "5.0.0",
-    "dompurify": "3.4.18",
+    "dompurify": "3.5.0",
     "marked": "18.2.1",
     "react": "19.3.1",
     "react-dom": "19.3.1"
